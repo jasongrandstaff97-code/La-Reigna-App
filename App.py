@@ -16,30 +16,145 @@ st.markdown("""
     .tier-poblano { color: #2e7d32; font-weight: bold; }
     .tier-jalapeno { color: #f57f17; font-weight: bold; }
     .tier-habanero { color: #c62828; font-weight: bold; }
+    /* Hide the default Streamlit menu for a more app-like feel */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. MENU DATABASE
+# 2. FULL MENU DATABASE
 # ==========================================
 MENU = {
     "Most Ordered": [
         {"id": 1, "name": "Street Corn", "price": 5.75, "desc": "2 for $5.75.", "promo": "Buy 1, get 1 free", "img": "🌽"},
         {"id": 2, "name": "Tamale de Elote Trufado", "price": 7.00, "desc": "Sweet corn tamale, queso fresco, truffle oil.", "promo": "Buy 1, get 1 free", "img": "🫔"},
-        {"id": 3, "name": "Street Tacos Asada", "price": 14.75, "desc": "Three asada or grilled chicken tacos, garnished.", "promo": None, "img": "🌮"},
-        {"id": 4, "name": "Carnita Tacos", "price": 14.00, "desc": "Three slow-cooked pork tacos, lightly fried.", "promo": None, "img": "🌮"}
+        {"id": 3, "name": "Famoso Queso Casero", "price": 8.00, "desc": "Our delicious house-made queso, made with a hint of spice.", "promo": None, "img": "🥣"},
+        {"id": 4, "name": "Street Tacos Asada", "price": 14.75, "desc": "Three asada or grilled chicken tacos, garnished.", "promo": None, "img": "🌮"},
+        {"id": 5, "name": "Carnita Tacos", "price": 14.00, "desc": "Three slow-cooked pork tacos, lightly fried.", "promo": None, "img": "🌮"},
+        {"id": 6, "name": "Mexican Enchiladas", "price": 14.75, "desc": "Three enchiladas - one cheese, one shredded chicken, one ground beef.", "promo": None, "img": "🌯"},
+        {"id": 7, "name": "Reina Style Enchiladas", "price": 16.00, "desc": "Texas-style enchiladas, filled with shredded chicken, topped with melted cheese.", "promo": None, "img": "🌯"},
+        {"id": 8, "name": "Jamaica", "price": 8.50, "desc": "Refreshing Hibiscus Tea, a Classic Caribbean Beverage.", "promo": "Buy 1, get 1 free", "img": "🥤"},
+        {"id": 9, "name": "Esquites De La Casa", "price": 8.00, "desc": "Charred corn kernels, epazote aioli, chile ash, lime dust.", "promo": "Buy 1, get 1 free", "img": "🌽"},
+        {"id": 10, "name": "Sopa De Tortilla", "price": 12.00, "desc": "Chipotle chicken broth with shredded chicken, topped with crispy tortilla chips.", "promo": "Buy 1, get 1 free", "img": "🍲"}
     ],
     "Antojitos & Botanas": [
-        {"id": 5, "name": "Stuffed Avocados", "price": 13.00, "desc": "Two fresh avocados filled with cheese, jalapeño, and chorizo.", "promo": None, "img": "🥑"},
-        {"id": 6, "name": "Top Shelf Guacamole", "price": 9.00, "desc": "Fresh flavor avocado dip, lime juice, garlic, onion.", "promo": None, "img": "🥣"},
-        {"id": 7, "name": "Esquites De La Casa", "price": 8.00, "desc": "Charred corn kernels, epazote aioli, chile ash.", "promo": "Buy 1, get 1 free", "img": "🌽"}
+        {"id": 11, "name": "Stuffed Avocados", "price": 13.00, "desc": "Two fresh avocados filled with cheese, jalapeño, and chorizo. Deep-fried.", "promo": None, "img": "🥑"},
+        {"id": 12, "name": "Top Shelf Guacamole", "price": 9.00, "desc": "Fresh flavor avocado dip, lime juice, garlic, onion.", "promo": None, "img": "🥑"},
+        {"id": 13, "name": "Tres Cheese Tostadas", "price": 9.00, "desc": "Three crisp corn tortillas layered with refried beans, a blend of three melted cheeses.", "promo": None, "img": "🌮"},
+        {"id": 14, "name": "Esquites De La Casa", "price": 8.00, "desc": "Charred corn kernels, epazote aioli, chile ash, lime dust.", "promo": None, "img": "🌽"},
+        {"id": 15, "name": "Tamale de Elote Trufado", "price": 14.00, "desc": "Sweet corn tamale, queso fresco, truffle oil.", "promo": "Buy 1, get 1 free (2 for $7.00)", "img": "🫔"},
+        {"id": 16, "name": "Empanadas", "price": 9.00, "desc": "Two golden, flaky pastries filled with tender, slow-cooked shredded beef.", "promo": None, "img": "🥟"},
+        {"id": 17, "name": "Fried Calamari", "price": 14.00, "desc": "Lightly breaded calamari rings, fried until golden.", "promo": "Buy 1, get 1 free", "img": "🦑"},
+        {"id": 18, "name": "Chilaquiles De La Casa", "price": 12.00, "desc": "Baked chips covered in our house-made mole, garnished with sour cream.", "promo": None, "img": "🍲"},
+        {"id": 19, "name": "Empanadas De Flor De Calabaza", "price": 14.00, "desc": "Two empanadas filled with queso and flor de calabaza.", "promo": "Buy 1, get 1 free", "img": "🥟"},
+        {"id": 20, "name": "Flautas", "price": 10.00, "desc": "Three rolled, deep-fried taquitos filled with shredded chicken.", "promo": None, "img": "🌯"},
+        {"id": 21, "name": "Agua Chile De Camarón", "price": 14.00, "desc": "Jumbo butterfly cut shrimp, cooked and marinated.", "promo": None, "img": "🍤"}
+    ],
+    "Ensaladas y Sopas": [
+        {"id": 22, "name": "Blackened Chicken Taco Salad", "price": 14.00, "desc": "Crisp lettuce, topped with blackened chicken, fire-roasted corn, black beans.", "promo": "Buy 1, get 1 free", "img": "🥗"},
+        {"id": 23, "name": "El Rey Bowl", "price": 15.00, "desc": "Sautéed shrimp, mixed greens, cucumber, corn, avocado.", "promo": "Buy 1, get 1 free", "img": "🥗"},
+        {"id": 24, "name": "Sopa De Tortilla", "price": 12.00, "desc": "Chipotle chicken broth with shredded chicken.", "promo": None, "img": "🍲"},
+        {"id": 25, "name": "Ensalada Royal", "price": 10.00, "desc": "Spring mix, grape tomato, jicama, goat cheese, raspberry vinaigrette.", "promo": "Buy 1, get 1 free", "img": "🥗"}
+    ],
+    "Platos Fuertes / Main": [
+        {"id": 26, "name": "Reina Style Enchiladas", "price": 16.00, "desc": "Texas-style enchiladas, filled with shredded chicken.", "promo": None, "img": "🌯"},
+        {"id": 27, "name": "Mexican Enchiladas", "price": 14.75, "desc": "Three enchiladas - one cheese, one shredded chicken, one ground beef.", "promo": None, "img": "🌯"},
+        {"id": 28, "name": "Salsa Verde Carnitas", "price": 16.00, "desc": "Tender pork chunks cooked in a special house-made green sauce.", "promo": None, "img": "🍛"},
+        {"id": 29, "name": "Chile Relleno", "price": 14.75, "desc": "Roasted poblano pepper stuffed with cheese or seasoned meat.", "promo": None, "img": "🫑"},
+        {"id": 30, "name": "Rey Birria Nachos", "price": 18.00, "desc": "Grande birria nachos topped with our special queso sauce.", "promo": "Buy 1, get 1 free", "img": "🧀"},
+        {"id": 31, "name": "Tampiquena Real", "price": 23.75, "desc": "Tender 10 oz beef skirt cooked to perfection.", "promo": None, "img": "🥩"},
+        {"id": 32, "name": "Birria Torta", "price": 16.00, "desc": "A hearty sandwich made with tender, slow-cooked birria beef.", "promo": None, "img": "🥪"},
+        {"id": 33, "name": "Pollo Pibil", "price": 16.00, "desc": "Citrus and achiote marinated chicken, slow-cooked in banana leaves.", "promo": None, "img": "🍗"},
+        {"id": 34, "name": "Mole Poblano", "price": 16.75, "desc": "Slow-cooked chicken smothered in a rich mole sauce.", "promo": "Buy 1, get 1 free", "img": "🍛"},
+        {"id": 35, "name": "Barbacoa Plate", "price": 16.00, "desc": "Slow-cooked shredded beef, simmered in our traditional spices.", "promo": None, "img": "🥩"},
+        {"id": 36, "name": "Burrito Mexicano", "price": 16.00, "desc": "Large tortilla filled with chicken fajita, sautéed onion, red bell pepper.", "promo": "Buy 1, get 1 free", "img": "🌯"},
+        {"id": 37, "name": "Ribeye Tacos", "price": 24.00, "desc": "Three ribeye tacos, garnished with cilantro, onion, fire-roasted salsa.", "promo": None, "img": "🌮"},
+        {"id": 38, "name": "Milanesa Empanizada", "price": 16.00, "desc": "Crispy, golden breaded chicken or beef cutlet.", "promo": None, "img": "🥩"},
+        {"id": 39, "name": "Puffy Tacos", "price": 15.00, "desc": "Three deep-fried tortilla shells filled with beans, birria.", "promo": "Buy 1, get 1 free", "img": "🌮"},
+        {"id": 40, "name": "Tamale Plate", "price": 14.00, "desc": "Two tamales, choice of pork or chicken.", "promo": None, "img": "🫔"}
+    ],
+    "À La Parrilla": [
+        {"id": 41, "name": "Sizzling Fajitas", "price": 18.75, "desc": "Tender chicken or steak fajitas, marinated and grilled.", "promo": None, "img": "🥩"},
+        {"id": 42, "name": "Pollo A La Plancha", "price": 16.75, "desc": "Tender, marinated chicken grilled on a plancha.", "promo": None, "img": "🍗"},
+        {"id": 43, "name": "Fajita Alambre", "price": 17.75, "desc": "Grilled beef or chicken with sautéed onions, bell peppers, crispy bacon.", "promo": None, "img": "🥩"},
+        {"id": 44, "name": "El Real Molcajete", "price": 19.00, "desc": "Sizzling molcajete with your choice of protein.", "promo": "Buy 1, get 1 free", "img": "🍲"}
+    ],
+    "Parrillada Nortena": [
+        {"id": 45, "name": "Recommended For 2 People", "price": 39.00, "desc": "Beef skirt steak, chicken a la plancha, house chorizo, salchicha.", "promo": None, "img": "🥩"},
+        {"id": 46, "name": "Recommended For 4 People", "price": 59.00, "desc": "Beef skirt steak, chicken a la plancha, house chorizo, salchicha.", "promo": None, "img": "🥩"}
+    ],
+    "Taqueria": [
+        {"id": 47, "name": "Carnita Tacos", "price": 14.00, "desc": "Three slow-cooked pork tacos, lightly fried.", "promo": "Buy 1, get 1 free", "img": "🌮"},
+        {"id": 48, "name": "Tacos Al Pastor", "price": 14.00, "desc": "Three marinated pork, cooked in aromatic spices.", "promo": None, "img": "🌮"},
+        {"id": 49, "name": "Quesabirria", "price": 16.00, "desc": "Three corn tortillas filled with tender, slow-roasted beef.", "promo": None, "img": "🌮"},
+        {"id": 50, "name": "Tacos De Pescado", "price": 15.75, "desc": "Three grilled tilapia, cabbage, pickled onion.", "promo": None, "img": "🌮"},
+        {"id": 51, "name": "Keto Taco", "price": 14.00, "desc": "Three cheese tortillas, pastor, onion, cilantro.", "promo": "Buy 1, get 1 free", "img": "🌮"},
+        {"id": 52, "name": "Lettuce-wrapped", "price": 12.75, "desc": "Three ground beef, lettuce, tomato, and shredded cheddar.", "promo": None, "img": "🥬"},
+        {"id": 53, "name": "Tacos Vegetables", "price": 14.00, "desc": "Vegetarian. Three roasted vegetables, pico de gallo.", "promo": None, "img": "🌮"},
+        {"id": 54, "name": "Tex-mex", "price": 13.00, "desc": "Three crispy tacos with crispy ground beef, lettuce.", "promo": None, "img": "🌮"},
+        {"id": 55, "name": "Street Tacos Asada", "price": 14.75, "desc": "Three asada or grilled chicken tacos.", "promo": None, "img": "🌮"}
+    ],
+    "Platos Vegetarianos": [
+        {"id": 56, "name": "Enchiladas De Espinaca", "price": 14.00, "desc": "Three rolled tortillas filled with sautéed spinach.", "promo": "Buy 1, get 1 free", "img": "🌯"},
+        {"id": 57, "name": "Tacos De Nopal Asado", "price": 14.00, "desc": "Three grilled cactus tacos, marinated in a special house-made sauce.", "promo": None, "img": "🌮"},
+        {"id": 58, "name": "Tacos Dorados De Papa", "price": 14.00, "desc": "Three crispy corn tortillas fried until golden, filled with seasoned potatoes.", "promo": None, "img": "🌮"},
+        {"id": 59, "name": "Roasted Chile Rellenos", "price": 15.75, "desc": "Poblano pepper filled with squash, mushrooms, red bell pepper.", "promo": "Buy 1, get 1 free", "img": "🫑"},
+        {"id": 60, "name": "Veggie Fajitas", "price": 16.00, "desc": "Grilled mixed-season veggies. Served in a sizzling skillet.", "promo": None, "img": "🫑"},
+        {"id": 61, "name": "Vegetables Al Vapor", "price": 14.00, "desc": "Oven-cooked mixed veggies. Served with white rice.", "promo": "Buy 1, get 1 free", "img": "🥦"},
+        {"id": 62, "name": "La Reina Special", "price": 13.75, "desc": "Roasted veggies on a bed of white rice topped with cheese sauce.", "promo": None, "img": "🍛"}
+    ],
+    "Acompanamientos / Sides": [
+        {"id": 63, "name": "Roasted Potatoes", "price": 5.00, "desc": "Perfectly roasted potatoes, seasoned with rosemary.", "promo": "Buy 1, get 1 free", "img": "🥔"},
+        {"id": 64, "name": "House Rice", "price": 3.00, "desc": "Seasoned rice typically includes minced garlic, onions.", "promo": None, "img": "🍚"},
+        {"id": 65, "name": "Roasted Carrot", "price": 4.75, "desc": "Roasted carrots with a hint of Mexican spices.", "promo": None, "img": "🥕"},
+        {"id": 66, "name": "Borracho Beans", "price": 4.00, "desc": "Slow-cooked pinto beans prepared with bacon.", "promo": None, "img": "🫘"},
+        {"id": 67, "name": "Vegetarian Black Beans", "price": 3.00, "desc": "Vegetarian black beans.", "promo": None, "img": "🫘"},
+        {"id": 68, "name": "Refried Beans", "price": 3.00, "desc": "Creamy, mashed beans, lightly seasoned.", "promo": None, "img": "🫘"},
+        {"id": 69, "name": "House Salad", "price": 4.75, "desc": "Fresh mix of greens, with an assortment of vegetables.", "promo": None, "img": "🥗"},
+        {"id": 70, "name": "Roasted Broccoli", "price": 4.75, "desc": "Roasted broccoli includes olive oil, garlic.", "promo": None, "img": "🥦"},
+        {"id": 71, "name": "French Fries", "price": 4.00, "desc": "Crispy golden strips of deliciousness.", "promo": None, "img": "🍟"},
+        {"id": 72, "name": "Street Corn", "price": 5.75, "desc": "2 for $5.75.", "promo": "Buy 1, get 1 free", "img": "🌽"},
+        {"id": 73, "name": "White Vegetarian Rice", "price": 3.00, "desc": "Vegetarian white rice.", "promo": None, "img": "🍚"}
+    ],
+    "Desserts": [
+        {"id": 74, "name": "Flan", "price": 7.00, "desc": "Smooth, caramel-topped custard.", "promo": "Buy 1, get 1 free", "img": "🍮"},
+        {"id": 75, "name": "Chocolate Dubai Cake", "price": 8.99, "desc": "Typically includes a combination of traditional Mexican desserts.", "promo": None, "img": "🍰"},
+        {"id": 76, "name": "Tres Leches", "price": 7.00, "desc": "Velvety three-milk cake, soaked and sweetened.", "promo": None, "img": "🍰"},
+        {"id": 77, "name": "Churros De La Casa (2)", "price": 6.00, "desc": "Two fried churros typically rolled in cinnamon and sugar.", "promo": None, "img": "🍩"}
+    ],
+    "Kids' Meals": [
+        {"id": 78, "name": "Chicken Tenders", "price": 8.00, "desc": "Three chicken tenders, fried until golden.", "promo": "Buy 1, get 1 free", "img": "🍗"},
+        {"id": 79, "name": "Bean & Cheese Burrito", "price": 7.00, "desc": "Burrito filled with beans and cheese, topped with cheese sauce.", "promo": None, "img": "🌯"},
+        {"id": 80, "name": "Mini Bean & Cheese Chimi", "price": 7.00, "desc": "Chimichanga filled with beans and cheese.", "promo": None, "img": "🌯"},
+        {"id": 81, "name": "Kids' Strawberry Smoothie", "price": 3.99, "desc": "Creamy smoothie with strawberry.", "promo": "Buy 1, get 1 free", "img": "🍓"},
+        {"id": 82, "name": "Kids Pina Colada Smoothie", "price": 3.99, "desc": "Pineapple, coconut cream, and typically includes banana.", "promo": None, "img": "🥥"},
+        {"id": 83, "name": "Cheese Enchilada", "price": 7.00, "desc": "Rolled soft corn tortilla filled with cheese.", "promo": "Buy 1, get 1 free", "img": "🌯"},
+        {"id": 84, "name": "Taco Plate", "price": 6.00, "desc": "Crispy ground beef topped with lettuce, tomato.", "promo": None, "img": "🌮"},
+        {"id": 85, "name": "Quesadilla Plate", "price": 7.00, "desc": "Melted cheese quesadilla.", "promo": None, "img": "🧀"}
+    ],
+    "Non-Alcoholic Beverages": [
+        {"id": 86, "name": "Mexican Coca-cola", "price": 4.00, "desc": "The same great taste made with only pure cane sugar.", "promo": "Buy 1, get 1 free", "img": "🥤"},
+        {"id": 87, "name": "House-made Punch", "price": 5.00, "desc": "A blend of assorted fresh fruits.", "promo": None, "img": "🍹"},
+        {"id": 88, "name": "Lemonade / Tropicana Lemonade", "price": 3.25, "desc": "Refreshing citrus drink.", "promo": "Buy 1, get 1 free", "img": "🍋"},
+        {"id": 89, "name": "Flavored Lemonade", "price": 3.95, "desc": "Freshly squeezed lemon juice combined with sweetened water.", "promo": None, "img": "🍋"},
+        {"id": 90, "name": "Tea / Coffee / Sparkling Water", "price": 3.00, "desc": "Choice of tea, coffee, or sparkling water.", "promo": "Buy 1, get 1 free", "img": "☕"},
+        {"id": 91, "name": "Flavored Tea", "price": 3.95, "desc": "Flavored tea typically includes a blend of black or green tea.", "promo": None, "img": "🫖"},
+        {"id": 92, "name": "Jarritos (Punch)", "price": 4.99, "desc": "A Mexican soda with a fruity punch flavor.", "promo": "Buy 1, get 1 free", "img": "🥤"},
+        {"id": 93, "name": "Jarritos (Lime)", "price": 4.99, "desc": "Lime-flavored Mexican soda.", "promo": None, "img": "🥤"},
+        {"id": 94, "name": "Jarritos (Pineapple)", "price": 4.99, "desc": "Pineapple-flavored soda.", "promo": None, "img": "🍍"},
+        {"id": 95, "name": "Jarritos (Mandarin)", "price": 4.99, "desc": "Mexican mandarin-flavored soda.", "promo": None, "img": "🍊"},
+        {"id": 96, "name": "Pepsi / Pepsi Zero / Orange Crush", "price": 3.25, "desc": "Choice of popular sodas.", "promo": None, "img": "🥤"}
     ],
     "Aguas Frescas (32 Oz)": [
-        {"id": 8, "name": "Jamaica", "price": 8.50, "desc": "Refreshing Hibiscus Tea, a Classic Caribbean Beverage.", "promo": None, "img": "🥤"},
-        {"id": 9, "name": "Horchata", "price": 8.50, "desc": "Sweet and refreshing Mexican drink (rice and cinnamon).", "promo": None, "img": "🥤"}
+        {"id": 97, "name": "Jamaica", "price": 8.50, "desc": "Refreshing Hibiscus Tea, a Classic Caribbean Beverage.", "promo": "Buy 1, get 1 free", "img": "🌺"},
+        {"id": 98, "name": "Sandia", "price": 8.50, "desc": "Refreshing watermelon drink.", "promo": None, "img": "🍉"},
+        {"id": 99, "name": "Strawberry", "price": 8.50, "desc": "Fresh strawberry water.", "promo": None, "img": "🍓"},
+        {"id": 100, "name": "Pineapple", "price": 8.50, "desc": "Fresh pineapple water.", "promo": None, "img": "🍍"},
+        {"id": 101, "name": "Horchata", "price": 8.50, "desc": "Sweet and refreshing Mexican drink (rice and cinnamon).", "promo": "Buy 1, get 1 free", "img": "🥛"}
+        {"id": 102, "name": "Tamarindo", "price": 8.50, "desc": "Sweet and tart tamarind beverage.", "promo": None, "img": "🧋"}
     ]
 }
-
 # ==========================================
 # 3. SESSION STATE (Cart & Gamified Rewards)
 # ==========================================
@@ -93,8 +208,9 @@ st.divider()
 # ==========================================
 # 5. MAIN MENU DISPLAY
 # ==========================================
+# Use a selectbox instead of radio buttons for categories since there are so many now
 categories = list(MENU.keys())
-selected_category = st.radio("Categories", categories, horizontal=True, label_visibility="collapsed")
+selected_category = st.selectbox("Menu Categories", categories)
 
 st.subheader(selected_category)
 
@@ -144,8 +260,6 @@ else:
     current_tier = get_user_tier(st.session_state.lifetime_points)
     
     st.sidebar.subheader("🎁 La Reina Rewards")
-    
-    # Display Tier Status and Progress
     st.sidebar.markdown(f"Status: <span class='{current_tier['css']}'>{current_tier['icon']} {current_tier['name']} Status</span>", unsafe_allow_html=True)
     if current_tier['next_tier_req']:
         pts_needed = current_tier['next_tier_req'] - st.session_state.lifetime_points
@@ -156,7 +270,6 @@ else:
 
     st.sidebar.write(f"**Spendable Balance:** {st.session_state.user_points} pts")
     
-    # Redemption Slider
     max_redeemable = min(st.session_state.user_points // 100, int(subtotal)) * 100
     discount = 0
     points_to_use = 0
@@ -166,7 +279,6 @@ else:
         if discount > 0:
             st.sidebar.success(f"Applying ${discount:.2f} reward discount!")
 
-    # Calculate Earnings based on Tier & Day
     today = datetime.now().weekday()
     is_double_points = today in [2, 6]
     points_multiplier = current_tier['base_multiplier'] * 2 if is_double_points else current_tier['base_multiplier']
@@ -209,7 +321,6 @@ else:
             submit_disabled = st.session_state.order_type == "Dine In" and not table_number
             
             if st.form_submit_button("Submit Order", type="primary", use_container_width=True, disabled=submit_disabled):
-                # Update BOTH points banks
                 st.session_state.user_points -= points_to_use
                 st.session_state.user_points += earned_points
                 st.session_state.lifetime_points += earned_points
@@ -217,4 +328,3 @@ else:
                 st.success(f"Order Placed! You earned {earned_points} points.")
                 st.session_state.cart = []
                 st.rerun()
-              
