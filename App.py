@@ -151,8 +151,8 @@ MENU = {
         {"id": 98, "name": "Sandia", "price": 8.50, "desc": "Refreshing watermelon drink.", "promo": None, "img": "🍉"},
         {"id": 99, "name": "Strawberry", "price": 8.50, "desc": "Fresh strawberry water.", "promo": None, "img": "🍓"},
         {"id": 100, "name": "Pineapple", "price": 8.50, "desc": "Fresh pineapple water.", "promo": None, "img": "🍍"},
-        {"id": 101, "name": "Horchata", "price": 8.50, "desc": "Sweet and refreshing Mexican drink (rice and cinnamon).", "promo": "Buy 1, get 1 free", "img": "🥛"}
-        {"id": 102, "name": "Tamarindo", "price": 8.50, "desc": "Sweet and tart tamarind beverage.", "promo": None, "img": "🧋"}
+        {"id": 101, "name": "Horchata", "price": 8.50, "desc": "Sweet and refreshing Mexican drink (rice and cinnamon).", "promo": "Buy 1, get 1 free", "img": "🥛"},
+        {"id": 102, "name": "Tamarindo", "price": 8.50, "desc": "Sweet and tart tamarind beverage.", "promo": None, "img": "🧋"},
     ]
 }
 # ==========================================
