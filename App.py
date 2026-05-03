@@ -1,112 +1,141 @@
 import streamlit as st
-import random 
+import random
+import streamlit.components.v1 as components
 
-# 1. PAGE CONFIG & BRANDING
-st.set_page_config(page_title="La Reina Margaritas", page_icon="👑", layout="centered")
+# 1. PAGE CONFIG & ACCESSIBILITY
+st.set_page_config(
+    page_title="La Reina Margaritas", 
+    page_icon="👑", 
+    layout="centered"
+)
 
-# 2. CUSTOM CSS: La Reina's Sage Green & Gold
+# 2. THE "GENIUS" UI/UX STYLING (Sage Green & Gold)
 st.markdown("""
     <style>
-    div.stButton > button:first-child {
-        background-color: #556B2F; 
-        color: white;
-        border-radius: 8px;
-        border: none;
-        font-weight: bold;
-        padding: 10px 24px;
-        width: 100%;
+    /* Main Background and Text */
+    [data-testid="stAppViewContainer"] {
+        background-color: #121212; /* Dark Mode for high contrast */
     }
-    div.stButton > button:hover {
-        background-color: #435425; 
-        color: #F8E231; 
+    
+    /* Mega-Pill Customization for Older Users */
+    div[data-testid="stBaseButton-secondaryPill"] {
+        padding: 20px 40px !important;
+        font-size: 22px !important;
+        font-weight: bold !important;
+        border-radius: 50px !important;
+        border: 2px solid #D4AF37 !important; /* Gold Border */
+        background-color: transparent !important;
+        color: white !important;
     }
+    
+    /* Hover/Active State for Pills */
+    div[data-testid="stBaseButton-secondaryPill"]:hover, 
+    div[data-testid="stBaseButton-secondaryPill"][aria-pressed="true"] {
+        background-color: #556B2F !important; /* Sage Green */
+        color: #F8E231 !important; /* Bright Gold */
+        border-color: #F8E231 !important;
+    }
+
+    /* Large 'Add' Buttons */
+    div.stButton > button {
+        background-color: #556B2F !important;
+        color: white !important;
+        font-size: 20px !important;
+        padding: 15px !important;
+        border-radius: 12px !important;
+        border: none !important;
+    }
+
+    /* Price and Header Typography */
     h1, h2, h3 { 
-        color: #556B2F; 
+        color: #D4AF37 !important; 
         font-family: 'Georgia', serif; 
+    }
+    .price-text {
+        font-size: 24px !important;
+        font-weight: bold;
+        color: #F8E231;
+    }
+    .item-name {
+        font-size: 26px !important;
+        font-weight: bold;
+        color: #ffffff;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. STATE MANAGEMENT
+# 3. JAVASCRIPT: THE BUMP-BAR LISTENER (Spacebar)
+# This allows the kitchen staff to "bump" orders using a physical USB keyboard
+components.html(
+    """
+    <script>
+    const doc = window.parent.document;
+    doc.addEventListener('keydown', function(e) {
+        if (e.code === 'Space') {
+            const buttons = Array.from(doc.querySelectorAll('button'));
+            const bumpBtn = buttons.find(el => el.innerText.includes('BUMP') || el.innerText.includes('➕ Add'));
+            if (bumpBtn) { bumpBtn.click(); }
+        }
+    });
+    </script>
+    """,
+    height=0,
+)
+
+# 4. STATE MANAGEMENT
 if "cart" not in st.session_state:
     st.session_state.cart = []
 if "show_camera" not in st.session_state:
     st.session_state.show_camera = False
 
-# 4. FULL MENU DATABASE
+# 5. HEADER & HORIZONTAL LOGO
+left_co, cent_co, last_co = st.columns([1, 5, 1])
+with cent_co:
+    # Ensure 'la_reina_horizontal.png' is uploaded to your GitHub!
+    try:
+        st.image("la_reina_horizontal.png", use_container_width=True)
+    except:
+        st.markdown("<h1 style='text-align: center;'>👑 La Reina Margaritas</h1>", unsafe_allow_html=True)
+
+st.divider()
+
+# 6. MENU DATABASE
 menu_data = {
     "Lunch Specials (11am-3pm)": [
-        {"name": "Lunch Fajitas", "price": 13.75, "desc": "Sizzling Steak or Chicken, grilled onions & peppers. With rice, beans & tortillas."},
-        {"name": "Fajita Chimichanga", "price": 12.75, "desc": "Steak & Chicken deep-fried burrito smothered in queso sauce. With rice & beans."},
-        {"name": "Sopes (3)", "price": 13.75, "desc": "Three traditional sopes with your choice of toppings."},
-        {"name": "Rey Nachos", "price": 14.00, "desc": "Loaded nachos topped with tender Birria meat."},
-        {"name": "Specialty Burritos", "price": 11.75, "desc": "Choice of protein, shredded chicken, veggies, smothered in queso."},
-        {"name": "Ribeye Tacos", "price": 16.99, "desc": "Two tacos, salsa cruda, street corn & rice."},
-        {"name": "El Rey Bowl", "price": 12.75, "desc": "Choice of Shrimp, Asada, Chicken Fajita, Ground Beef, Tinga, or Veggies."},
-        {"name": "Burrito Style Enchilada", "price": 13.00, "desc": "Ground beef with special sauces."},
-        {"name": "El Real Molcajete", "price": 16.75, "desc": "Sizzling molcajete, choice of protein."},
-        {"name": "Enchiladas de Espinaca", "price": 13.25, "desc": "Spinach enchiladas served w/ rice & beans (Vegetarian)."}
-    ],
-    "Antojitos & Botanas": [
-        {"name": "Famoso Queso Casero", "price": 8.00, "desc": "Our delicious house-made queso with a hint of spice."},
-        {"name": "Tamale de Elote Trufado", "price": 7.00, "desc": "Sweet corn tamale, queso fresco, truffle oil."},
-        {"name": "Esquites de la Casa", "price": 8.00, "desc": "Charred corn kernels, epazote aioli, chile ash, lime dust, queso fresco."},
-        {"name": "Stuffed Avocados", "price": 14.00, "desc": "Two fresh avocados filled with cheese, jalapeño, and chorizo. Lightly battered and deep-fried."},
-        {"name": "Chilaquiles de la Casa", "price": 12.00, "desc": "Baked chips covered in our house-made mole, garnished with sour cream drizzle."},
-        {"name": "Table Side Cart Special", "price": 17.00, "desc": "Appetizer trio made table side. Our famous queso flameado, fresh guacamole, and roasted salsa."}
+        {"name": "Lunch Fajitas", "price": 13.75, "desc": "Sizzling Steak or Chicken, grilled onions & peppers."},
+        {"name": "Fajita Chimichanga", "price": 12.75, "desc": "Deep-fried burrito smothered in queso sauce."},
+        {"name": "Sopes (3)", "price": 13.75, "desc": "Three traditional sopes with fresh toppings."},
+        {"name": "Rey Nachos", "price": 14.00, "desc": "Loaded nachos topped with tender Birria meat."}
     ],
     "Taqueria / Tacos": [
-        {"name": "Street Tacos", "price": 14.75, "desc": "Three asada or grilled chicken tacos, garnished with onions, cilantro, and salsa verde."},
-        {"name": "Tex-Mex", "price": 13.00, "desc": "Three crispy tacos with ground beef, lettuce, tomato, sour cream, guacamole drizzle, and queso fresco."},
-        {"name": "Carnita Tacos", "price": 14.00, "desc": "Three slow-cooked pork tacos, lightly fried for extra flavor."},
-        {"name": "Quesabirria", "price": 16.00, "desc": "Three corn tortillas filled with tender, slow-roasted beef, and melted cheese. Served with savory consommé."},
-        {"name": "Tacos de Pescado", "price": 15.75, "desc": "Three grilled tilapia, cabbage, pickled onion, pico de gallo, and creamy chipotle sauce."},
-        {"name": "Keto Taco", "price": 14.00, "desc": "Three cheese tortillas, pastor, onion, cilantro, and salsa verde."}
+        {"name": "Quesabirria", "price": 16.00, "desc": "Three tortillas with slow-roasted beef & consommé."},
+        {"name": "Street Tacos", "price": 14.75, "desc": "Three asada or grilled chicken tacos."},
+        {"name": "Keto Taco", "price": 14.00, "desc": "Three cheese tortillas, pastor, onion, & cilantro."}
     ],
-    "Platos Fuertes / Entrees": [
-        {"name": "Tamale Plate", "price": 14.00, "desc": "Two tamales, choice of pork or chicken, topped with chile con carne and melted cheese."},
-        {"name": "Rey Birria Nachos", "price": 16.00, "desc": "Crispy nachos topped with birria, house-made queso, signature corona sauce, and guacamole."},
-        {"name": "Reina Style Enchiladas", "price": 16.00, "desc": "Three Texas-style enchiladas, filled with shredded chicken, topped with melted cheese and sour cream sauce."},
-        {"name": "Ribeye Tacos (Dinner)", "price": 24.00, "desc": "Three ribeye tacos, garnished with cilantro, onion, salsa cruda. Served with street corn and Mexican rice."},
-        {"name": "Mole Poblano", "price": 16.75, "desc": "Slow-cooked chicken smothered in a rich mole sauce made with roasted chiles, chocolate, nuts, and aromatic spices."},
-        {"name": "Barbacoa Plate", "price": 16.00, "desc": "Slow-cooked shredded beef, simmered in our traditional spices. Served with salsa verde, rice, beans, and tortillas."}
-    ],
-    "Sizzling Platters & Seafood": [
-        {"name": "El Real Molcajete", "price": 19.00, "desc": "Sizzling molcajete with your choice of protein over a smoking medley of pepper and onion."},
-        {"name": "Sizzling Fajitas", "price": 18.75, "desc": "Tender chicken or steak fajitas, marinated and grilled over an open flame."},
-        {"name": "Parrillada Nortena (For 2)", "price": 39.00, "desc": "Mixed grill: Beef Skirt Steak, Chicken a la Plancha, House Chorizo, Salchicha, Chiles Toreados. Served with tortillas and sides."},
-        {"name": "Caldo de Mariscos", "price": 18.75, "desc": "Traditional Mexican seafood soup prepared with shrimp, fish, and crab simmered in a rich tomato and chile broth."},
-        {"name": "Camarones a la Diabla", "price": 16.00, "desc": "Succulent shrimp simmered in a bold blend of dried chiles, garlic, and spices."}
-    ],
-    "Vegetarian": [
-        {"name": "La Reina Special", "price": 13.75, "desc": "Roasted veggies on a bed of white rice and topped with cheese sauce and our signature Corona sauce."},
-        {"name": "Roasted Chile Rellenos", "price": 15.75, "desc": "Poblano pepper filled with squash, mushrooms, red bell pepper, and queso fresco. Topped with roasted red salsa."},
-        {"name": "Veggie Fajitas", "price": 16.00, "desc": "Grilled seasonal veggies, served in a sizzling skillet with lettuce, pico, shredded cheddar cheese, sour cream, and guacamole."}
+    "Antojitos & Botanas": [
+        {"name": "Famoso Queso Casero", "price": 8.00, "desc": "House-made queso with a hint of spice."},
+        {"name": "Esquites de la Casa", "price": 8.00, "desc": "Charred corn, epazote aioli, and queso fresco."}
     ],
     "Drinks & Desserts": [
-        {"name": "Aguas Frescas (32 oz)", "price": 7.50, "desc": "Horchata, Jamaica, Sandia, Tamarindo, Strawberry, or Pineapple."},
-        {"name": "House Margarita (Happy Hour)", "price": 6.75, "desc": "Classic house-made margarita."},
-        {"name": "Churros de la Casa", "price": 6.00, "desc": "Traditional warm churros."},
-        {"name": "Tres Leches", "price": 7.00, "desc": "Classic Mexican three-milk cake."},
-        {"name": "Dulce Banana Mousse", "price": 10.00, "desc": "Rich, sweet banana mousse dessert."}
+        {"name": "Aguas Frescas (32 oz)", "price": 7.50, "desc": "Horchata, Sandia, or Pineapple."},
+        {"name": "Tres Leches", "price": 7.00, "desc": "Classic Mexican three-milk cake."}
     ]
 }
-# 5. HEADER & LOGO
-try:
-    st.image("logo.png", use_container_width=True) 
-except:
-    st.markdown("<h1 style='text-align: center;'>👑 La Reina Margaritas</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: gray;'>AUTHENTIC MEXICAN KITCHEN & CANTINA</p>", unsafe_allow_html=True)
 
-# 6. MAIN TABS SETUP
-tab1, tab2, tab3 = st.tabs(["🍽️ Menu", "🎁 Rewards", f"🛒 Cart ({len(st.session_state.cart)})"])
+# 7. MAIN TABS SETUP
+tab1, tab2, tab3 = st.tabs(["🍽️ Order Now", "🎁 Rewards", f"🛒 Cart ({len(st.session_state.cart)})"])
 
-# --- TAB 1: MENU UI ---
 with tab1:
     st.markdown("### Browse Menu")
     
+    # Large Nav Pills for Accessibility
     category_list = list(menu_data.keys())
-    selected_category = st.pills("Select Category", category_list, default="Lunch Specials (11am-3pm)")
+    selected_category = st.pills(
+        "Menu Categories", 
+        category_list, 
+        default="Lunch Specials (11am-3pm)", 
+        label_visibility="collapsed"
+    )
     
     st.divider()
 
@@ -115,22 +144,22 @@ with tab1:
             col1, col2 = st.columns([3, 1], vertical_alignment="center")
             
             with col1:
-                st.markdown(f"**{item['name']}**")
+                st.markdown(f"<div class='item-name'>{item['name']}</div>", unsafe_allow_html=True)
                 st.caption(item['desc'])
-                st.markdown(f"**${item['price']:.2f}**")
+                st.markdown(f"<div class='price-text'>${item['price']:.2f}</div>", unsafe_allow_html=True)
             
             with col2:
-                if st.button("➕ Add", key=item['name']):
+                if st.button("➕ Add", key=f"add_{item['name']}"):
                     st.session_state.cart.append(item)
-                    st.toast(f"Added {item['name']} to your cart! 🌮", icon="✅")
+                    st.toast(f"Added {item['name']}! 🌮", icon="✅")
             st.divider()
-            # --- TAB 2: REWARDS UI ---
+
 with tab2:
     st.header("Poblano Status 🌶️")
     st.progress(0.5, text="500 pts until next tier (Habanero!)")
     
     st.markdown("### Claim Missing Points")
-    st.info("Ordered over the phone? Upload your receipt below.")
+    st.info("Upload your phone order receipt below.")
     
     if st.button("📸 Tap to Scan Receipt"):
         st.session_state.show_camera = True
@@ -138,35 +167,32 @@ with tab2:
     if st.session_state.show_camera:
         picture = st.camera_input("Line up your receipt here")
         if picture:
-            st.success("Receipt scanned successfully! Points will be added shortly.")
-            st.toast("50 Points Added!", icon="🔥")
+            st.success("Points will be added shortly!")
             st.session_state.show_camera = False
 
-# --- TAB 3: CART & CHECKOUT UI ---
 with tab3:
     st.header("Your Order")
-    if len(st.session_state.cart) == 0:
-        st.warning("Your cart is empty. Head to the Menu tab to add items!")
+    if not st.session_state.cart:
+        st.warning("Your cart is empty.")
     else:
-        total = 0
-        for item in st.session_state.cart:
-            st.markdown(f"- {item['name']} : **${item['price']:.2f}**")
-            total += item['price']
-            
+        total = sum(item['price'] for item in st.session_state.cart)
+        for i, item in enumerate(st.session_state.cart):
+            col_i, col_x = st.columns([4, 1])
+            col_i.markdown(f"- {item['name']} : **${item['price']:.2f}**")
+            if col_x.button("🗑️", key=f"del_{i}"):
+                st.session_state.cart.pop(i)
+                st.rerun()
+                
         st.divider()
         st.subheader(f"Total: ${total:.2f}")
         
-        st.markdown("### How would you like to pay?")
-        
+        st.markdown("### Checkout Options")
         colA, colB = st.columns(2)
         with colA:
             if st.button("🏪 Pay at Pickup"):
-                order_num = random.randint(1000, 9999)
-                st.success(f"🎉 Order #{order_num} confirmed! We will have it ready for you. You can pay however you prefer upon arrival.")
+                st.success(f"🎉 Order Confirmed! See you soon.")
                 st.session_state.cart = []
                 st.rerun() 
-                
         with colB:
-            if st.button("💳 Pay Now in App"):
-                st.info("Redirecting to secure card payment...")
-                
+            if st.button("💳 Pay Now (Direct)"):
+                st.info("Bypassing POS... Redirecting to Bank Bridge.")
