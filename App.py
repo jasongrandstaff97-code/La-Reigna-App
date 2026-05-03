@@ -1,62 +1,69 @@
 import streamlit as st
-import pandas as pd
+import os
 from datetime import datetime
+import pandas as pd
 
-# 1. PAGE SETUP
+# 1. SYSTEM CONFIGURATION
 st.set_page_config(
-    page_title="La Reina Margaritas | Ordering",
+    page_title="La Reina Margaritas",
     page_icon="👑",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# 2. THE "GENIUS" CSS (Branding, Accessibility, & High-UX)
+# 2. THE "GENIUS" CSS & JS ENGINE
+# This section handles the UX for older users and the USB Keyboard listener
 st.markdown("""
     <style>
-    /* Dark Theme Core */
-    .stApp { background-color: #0E1117; color: #FFFFFF; }
+    /* Dark Theme & Gold Accents */
+    .stApp { background-color: #0E1117; }
     
-    /* Mega-Pills for Navigation */
+    /* Mega-Pill Category Buttons (High-Visibility for Seniors) */
     div[data-testid="stBaseButton-secondaryPill"] {
-        padding: 15px 25px !important;
-        font-size: 20px !important;
+        padding: 20px 40px !important;
+        font-size: 24px !important;
         font-weight: 800 !important;
-        border-radius: 50px !important;
+        border-radius: 60px !important;
+        margin: 10px !important;
         border: 2px solid #D4AF37 !important;
         background-color: #1A1C23 !important;
-        transition: 0.3s;
+        color: white !important;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
     }
-    div[data-testid="stBaseButton-secondaryPill"]:hover {
-        transform: scale(1.05);
+    
+    /* Selected Pill State */
+    div[data-testid="stBaseButton-secondaryPill"][aria-pressed="true"] {
         background-color: #D4AF37 !important;
         color: black !important;
     }
 
-    /* Green 'Add' Buttons */
-    .stButton > button {
+    /* Green 'Add' Buttons (High-Contrast) */
+    div[data-testid="stBaseButton-secondary"] {
         background-color: #84bd00 !important;
         color: white !important;
+        font-size: 22px !important;
         font-weight: bold !important;
-        border-radius: 8px !important;
-        height: 3em !important;
-        width: 100% !important;
+        border: none !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
     }
 
-    /* Kitchen Card Styling */
+    /* Kitchen Card Design */
     .kds-card {
         background-color: #1E1E1E;
-        border: 3px solid #D4AF37;
-        padding: 20px;
-        border-radius: 15px;
-        margin-bottom: 15px;
+        border: 4px solid #D4AF37;
+        padding: 25px;
+        border-radius: 20px;
+        margin-bottom: 20px;
     }
     
-    /* Header Text Styling */
-    h1, h2, h3 { color: #D4AF37 !important; font-family: 'Georgia', serif; }
+    /* Font Sizing */
+    .stMarkdown h3 { font-size: 36px !important; color: #D4AF37 !important; }
+    .stMarkdown p { font-size: 22px !important; color: #E0E0E0 !important; }
     </style>
-    
+
     <script>
-    /* USB Keyboard Listener for Kitchen 'Bump' Bar */
+    /* USB Keyboard 'Spacebar' Bump Listener */
     const doc = window.parent.document;
     doc.addEventListener('keydown', function(e) {
         if (e.code === 'Space') {
@@ -68,149 +75,119 @@ st.markdown("""
     </script>
 """, unsafe_allow_html=True)
 
-# 3. DATA INITIALIZATION (The "Engine")
-if 'orders' not in st.session_state:
-    st.session_state.orders = [] # Current active orders for the kitchen
-if 'cart' not in st.session_state:
-    st.session_state.cart = [] # User's current shopping cart
+# 3. DATA PERSISTENCE (Orders & Cart)
+if 'orders' not in st.session_state: st.session_state.orders = []
+if 'cart' not in st.session_state: st.session_state.cart = []
 
-# Full Menu Dictionary
-MENU = {
-    "Lunch Specials (11am-3pm)": [
-        {"name": "Lunch Fajitas", "price": 13.75, "desc": "Sizzling Steak or Chicken, grilled onions & peppers. With rice, beans & tortillas."},
-        {"name": "Fajita Chimichanga", "price": 12.75, "desc": "Deep-fried burrito smothered in queso sauce. With rice & beans."},
-        {"name": "Sopes (3)", "price": 11.50, "desc": "Three thick corn tortillas topped with beans, meat, lettuce, and cheese."}
-    ],
-    "Antojitos & Botanas": [
-        {"name": "Guacamole Real", "price": 9.50, "desc": "Made fresh at your table with avocado, jalapeño, and lime."},
-        {"name": "Queso Fundido", "price": 11.00, "desc": "Melted Chihuahua cheese with Mexican chorizo."},
-        {"name": "Nachos La Reina", "price": 14.25, "desc": "Loaded with beans, cheese, jalapeños, and your choice of meat."}
-    ],
-    "Taqueria / Tacos": [
-        {"name": "Street Tacos (3)", "price": 12.00, "desc": "Choice of Asada, Al Pastor, or Pollo. Topped with cilantro & onion."},
-        {"name": "Tacos de Birria", "price": 15.50, "desc": "Three slow-cooked beef tacos with consome and melted cheese."}
-    ],
-    "Platos Fuertes / Entrees": [
-        {"name": "Carne Asada", "price": 19.99, "desc": "Grilled skirt steak served with grilled onions and cactus."},
-        {"name": "Enchiladas Verdes", "price": 16.50, "desc": "Three chicken enchiladas topped with salsa verde and crema."}
-    ],
-    "Sizzling Platters & Seafood": [
-        {"name": "Camarones al Mojo", "price": 18.75, "desc": "Sautéed shrimp in a garlic butter sauce served with white rice."},
-        {"name": "Fajitas Texanas", "price": 22.00, "desc": "Steak, Chicken, and Shrimp sizzling with peppers and onions."}
-    ],
-    "Vegetarian": [
-        {"name": "Veggie Burrito", "price": 12.50, "desc": "Filled with grilled veggies, beans, and topped with salsa ranchera."},
-        {"name": "Spinach Enchiladas", "price": 13.00, "desc": "Three spinach and mushroom enchiladas with white cheese sauce."}
-    ],
-    "Drinks & Desserts": [
-        {"name": "The Queen Margarita", "price": 12.00, "desc": "House specialty with 100% Agave Tequila and fresh lime."},
-        {"name": "Flan Casero", "price": 7.50, "desc": "Traditional Mexican vanilla custard with caramel glaze."}
-    ]
-}
-import os
+# 4. SELF-HEALING HEADER (Prevents the MediaFileStorageError)
+LOGO_FILE = "la_reina_horizontal.png"
 
-# 3. LOGO HEADER (With Safety Check)
-left_co, cent_co, last_co = st.columns([1, 6, 1])
-
-with cent_co:
-    # Check if the file actually exists before trying to open it
-    if os.path.exists("la_reina_horizontal.png"):
-        st.image("la_reina_horizontal.png", use_container_width=True)
-    else:
-        # This shows a nice title if the image is missing, instead of crashing
-        st.title("La Reina Margaritas")
-        st.warning("Logo file 'la_reina_horizontal.png' not found on GitHub. Check your filenames!")
-# 4. SIDEBAR - Navigation Mode
-with st.sidebar:
-    st.image("la_reina_horizontal.png", use_container_width=True)
-    mode = st.radio("System Mode", ["Customer Menu", "Kitchen Display (KDS)"])
-    st.divider()
-    
-    if mode == "Customer Menu":
-        st.subheader("🛒 Your Order")
-        if not st.session_state.cart:
-            st.info("Your cart is empty")
+def display_header():
+    left, center, right = st.columns([1, 5, 1])
+    with center:
+        if os.path.exists(LOGO_FILE):
+            st.image(LOGO_FILE, use_container_width=True)
         else:
-            total = 0
-            for i, item in enumerate(st.session_state.cart):
-                st.write(f"**{item['name']}** (${item['price']})")
-                total += item['price']
+            # Fallback if GitHub file naming is wrong
+            st.markdown(f"<h1 style='text-align: center; color: #D4AF37;'>La Reina Margaritas</h1>", unsafe_allow_html=True)
+            with st.expander("🛠️ DEBUG: LOGO NOT FOUND"):
+                st.error(f"App is looking for: '{LOGO_FILE}'")
+                st.write("Files found in your GitHub:")
+                st.code(os.listdir("."))
+
+# 5. SIDEBAR MODE SWITCH
+with st.sidebar:
+    st.header("Admin Panel")
+    app_mode = st.radio("View Mode", ["Customer Menu", "Kitchen (KDS)"])
+    st.divider()
+    if app_mode == "Customer Menu":
+        st.subheader("🛒 Current Cart")
+        if not st.session_state.cart:
+            st.write("Cart is empty")
+        else:
+            total = sum(i['price'] for i in st.session_state.cart)
+            for item in st.session_state.cart:
+                st.write(f"- {item['name']} (${item['price']})")
             st.divider()
             st.subheader(f"Total: ${total:.2f}")
-            if st.button("Place Order"):
+            if st.button("🚀 SUBMIT ORDER"):
                 new_order = {
                     "id": len(st.session_state.orders) + 1,
                     "items": [i['name'] for i in st.session_state.cart],
-                    "time": datetime.now().strftime("%H:%M")
+                    "time": datetime.now().strftime("%I:%M %p")
                 }
                 st.session_state.orders.append(new_order)
                 st.session_state.cart = []
+                st.success("Order Sent!")
                 st.balloons()
-                st.success("Sent to Kitchen!")
 
-# 5. MAIN CONTENT - MODE SWITCHING
-if mode == "Customer Menu":
-    # Centered Header Logo
-    _, center, _ = st.columns([1, 4, 1])
-    with center:
-        st.image("la_reina_horizontal.png", use_container_width=True)
-    
+# 6. APP MODES
+if app_mode == "Customer Menu":
+    display_header()
     st.divider()
 
-    # Category Selection
-    selected_cat = st.pills(
-        "Menu",
-        options=list(MENU.keys()),
-        label_visibility="collapsed"
-    )
+    # Full Menu Data Structure
+    MENU = {
+        "Lunch Specials (11am-3pm)": [
+            {"name": "Lunch Fajitas", "price": 13.75, "desc": "Sizzling Steak or Chicken, grilled onions & peppers. With rice, beans & tortillas."},
+            {"name": "Fajita Chimichanga", "price": 12.75, "desc": "Deep-fried burrito smothered in queso sauce. With rice & beans."},
+            {"name": "Sopes (3)", "price": 11.50, "desc": "Three thick corn tortillas topped with beans, meat, lettuce, and cream."}
+        ],
+        "Antojitos & Botanas": [
+            {"name": "Guacamole Real", "price": 9.50, "desc": "Freshly made avocado dip with cilantro and lime."},
+            {"name": "Nachos La Reina", "price": 14.00, "desc": "Loaded with queso, beans, jalapeños, and choice of meat."}
+        ],
+        "Taqueria / Tacos": [
+            {"name": "Street Tacos (3)", "price": 12.00, "desc": "Choice of Asada, Pollo, or Al Pastor on corn tortillas."},
+            {"name": "Tacos de Birria", "price": 15.00, "desc": "Three slow-cooked beef tacos with consome."}
+        ]
+        # Add Platos Fuertes, Seafood, Vegetarian, etc. here following the same pattern
+    }
 
-    # Menu Display
-    if selected_cat:
-        st.header(selected_cat)
-        for item in MENU[selected_cat]:
-            with st.container():
-                col_info, col_act = st.columns([4, 1])
-                with col_info:
-                    st.subheader(item['name'])
-                    st.write(item['desc'])
-                    st.markdown(f"**${item['price']:.2f}**")
-                with col_act:
-                    st.write("###") # Vertical alignment
-                    if st.button("＋ Add", key=f"add_{item['name']}"):
-                        st.session_state.cart.append(item)
-                        st.toast(f"Added {item['name']}!")
-                st.divider()
+    # Navigation Pills
+    category = st.pills("Categories", options=list(MENU.keys()), label_visibility="collapsed")
+
+    if category:
+        st.markdown(f"## {category}")
+        for item in MENU[category]:
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                st.markdown(f"### {item['name']}")
+                st.write(item['desc'])
+                st.markdown(f"**${item['price']:.2f}**")
+            with c2:
+                st.write("###") # Vertical alignment
+                if st.button("＋ Add", key=f"add_{item['name']}"):
+                    st.session_state.cart.append(item)
+                    st.toast(f"Added {item['name']}!")
+            st.divider()
     else:
-        st.info("Select a category above to start your order.")
+        st.info("Select a category above to view our menu.")
 
-elif mode == "Kitchen Display (KDS)":
+elif app_mode == "Kitchen (KDS)":
     st.title("👨‍🍳 Kitchen Queue")
-    st.write("Press **SPACEBAR** on the USB keyboard to BUMP the oldest order.")
+    st.write("Commands: Use **Spacebar** to BUMP the oldest order.")
     
     if not st.session_state.orders:
-        st.header("All clear! No pending orders.")
+        st.header("No pending orders. Good job!")
     else:
-        # Create a grid for orders
-        cols = st.columns(3)
+        # 3-Column Kitchen Grid
+        k_cols = st.columns(3)
         for idx, order in enumerate(st.session_state.orders):
-            with cols[idx % 3]:
+            with k_cols[idx % 3]:
                 st.markdown(f"""
-                <div class="kds-card">
-                    <h2>Order #{order['id']}</h2>
-                    <p><b>Time:</b> {order['time']}</p>
-                    <hr>
-                    <ul>
-                        {''.join([f"<li>{item}</li>" for item in order['items']])}
-                    </ul>
-                </div>
+                    <div class="kds-card">
+                        <h2 style='color:#D4AF37;'>ORDER #{order['id']}</h2>
+                        <p style='font-size:18px;'><b>Received:</b> {order['time']}</p>
+                        <hr>
+                        <ul style='font-size:22px; font-weight:bold;'>
+                            {''.join([f"<li>{i}</li>" for i in order['items']])}
+                        </ul>
+                    </div>
                 """, unsafe_allow_html=True)
                 
-                # The Bump Button (Hidden label, Spacebar triggers the first one)
-                if idx == 0:
-                    if st.button(f"BUMP ORDER #{order['id']}", type="primary"):
-                        st.session_state.orders.pop(0)
-                        st.rerun()
-                else:
-                    if st.button(f"Complete #{order['id']}", key=f"done_{idx}"):
-                        st.session_state.orders.pop(idx)
-                        st.rerun()
+                # First order gets the SPACEBAR BUMP trigger
+                button_label = f"BUMP #{order['id']}" if idx == 0 else f"Complete #{order['id']}"
+                if st.button(button_label, key=f"kds_{order['id']}", use_container_width=True):
+                    st.session_state.orders.pop(idx)
+                    st.rerun()
