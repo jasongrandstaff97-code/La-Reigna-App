@@ -107,7 +107,19 @@ MENU = {
         {"name": "Flan Casero", "price": 7.50, "desc": "Traditional Mexican vanilla custard with caramel glaze."}
     ]
 }
+import os
 
+# 3. LOGO HEADER (With Safety Check)
+left_co, cent_co, last_co = st.columns([1, 6, 1])
+
+with cent_co:
+    # Check if the file actually exists before trying to open it
+    if os.path.exists("la_reina_horizontal.png"):
+        st.image("la_reina_horizontal.png", use_container_width=True)
+    else:
+        # This shows a nice title if the image is missing, instead of crashing
+        st.title("La Reina Margaritas")
+        st.warning("Logo file 'la_reina_horizontal.png' not found on GitHub. Check your filenames!")
 # 4. SIDEBAR - Navigation Mode
 with st.sidebar:
     st.image("la_reina_horizontal.png", use_container_width=True)
