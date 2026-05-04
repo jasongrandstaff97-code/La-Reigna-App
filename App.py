@@ -1,12 +1,13 @@
 import streamlit as st
 import random
-from streamlit_autorefresh import st_autorefresh
+import time
 import json
 import os
 import datetime
+from streamlit_autorefresh import st_autorefresh
 
 # ==========================================
-# 1. DATABASE ENGINE (MERGED INTO APP)
+# 1. DATABASE ENGINE (MERGED & BULLETPROOF)
 # ==========================================
 class SystemConfig:
     RESTAURANT_NAME = "La Reina"
@@ -15,19 +16,17 @@ class SystemConfig:
     BG_COLOR = "#000000"       # Deep Black
     LOGO_PATH = "la_reina_dark.png" 
     TAX_RATE = 0.085           # 8.5% Tax
-    DB_FILE = "la_reina_db.json"      # User/Rewards Ledger
-    SALES_DB = "la_reina_sales.json"  # Financial/Ticket Ledger
-    ADMIN_CODE = "9999999999"         # God Mode Unlock
+    DB_FILE = "la_reina_db.json"      
+    SALES_DB = "la_reina_sales.json"  
+    ADMIN_CODE = "9999999999"         
 
 def load_db():
     if os.path.exists(SystemConfig.DB_FILE):
-        with open(SystemConfig.DB_FILE, 'r') as f:
-            return json.load(f)
+        with open(SystemConfig.DB_FILE, 'r') as f: return json.load(f)
     return {} 
 
 def save_db(db_data):
-    with open(SystemConfig.DB_FILE, 'w') as f:
-        json.dump(db_data, f, indent=4)
+    with open(SystemConfig.DB_FILE, 'w') as f: json.dump(db_data, f, indent=4)
 
 def sync_user_data(phone_number):
     db = load_db()
@@ -45,11 +44,9 @@ def update_user_points(phone_number, points_to_add):
         st.session_state.reward_points = db[phone_number]["points"]
 
 def log_transaction(order_num, order_type, cart_items, total_price):
+    sales = []
     if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            sales = json.load(f)
-    else:
-        sales = []
+        with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
     
     new_order = {
         "order_id": order_num,
@@ -61,28 +58,21 @@ def log_transaction(order_num, order_type, cart_items, total_price):
     }
     
     sales.append(new_order)
-    with open(SystemConfig.SALES_DB, 'w') as f:
-        json.dump(sales, f, indent=4)
+    with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 def get_sales_data():
     if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            return json.load(f)
+        with open(SystemConfig.SALES_DB, 'r') as f: return json.load(f)
     return []
 
 def bump_kitchen_ticket(order_id):
     if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            sales = json.load(f)
-            
+        with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
         for order in sales:
             if order["order_id"] == order_id:
                 order["status"] = "COMPLETED"
                 break
-                
-        with open(SystemConfig.SALES_DB, 'w') as f:
-            json.dump(sales, f, indent=4)
-
+        with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
 # 2. SYSTEM CONFIG & STYLES
@@ -101,6 +91,7 @@ def inject_styles():
         .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
         
+        /* STATUS ENGINE & GRID */
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
@@ -110,6 +101,7 @@ def inject_styles():
         .active-tab > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
         .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
+        /* MENU & MANIFEST */
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
@@ -120,9 +112,11 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
         
+        /* PAYMENTS */
         .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
         .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
 
+        /* KDS STATION & ADMIN */
         .kds-card {{ background-color: #080808; border-left: 10px solid {SystemConfig.PRIMARY_COLOR}; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; }}
         .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
         .kds-dine-in {{ background-color: #2E7D32; color: white; }}
@@ -146,9 +140,8 @@ def inject_styles():
         </script>
     """, unsafe_allow_html=True)
 
-
 # ==========================================
-# 3. MENU DATA & LOGIC
+# 3. MENU DATA & STATE LOGIC
 # ==========================================
 def get_master_menu():
     return {
@@ -192,8 +185,13 @@ def init_session():
     if 'kds_queue' not in st.session_state: st.session_state.kds_queue = []
 
 def process_order(payment_method, total_price):
+    # Simulated UX Delay
+    with st.spinner(f"Initiating secure handshake with {payment_method}..."):
+        time.sleep(1.5)
+        st.toast(f"Payment of ${total_price:.2f} Authorized.")
+        time.sleep(0.5)
+
     order_id = str(random.randint(1000, 9999))
-    
     item_counts = {}
     for item in st.session_state.cart:
         item_counts[item['name']] = item_counts.get(item['name'], 0) + 1
@@ -210,8 +208,9 @@ def process_order(payment_method, total_price):
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price)
 
     st.session_state.cart = []
-    st.success(f"Order #{order_id} sent to kitchen via {payment_method}.")
+    st.success(f"Order #{order_id} sent to kitchen.")
     st.balloons()
+    time.sleep(2)
     st.rerun()
 
 def complete_kds_ticket(index, order_id):
@@ -220,7 +219,6 @@ def complete_kds_ticket(index, order_id):
         bump_kitchen_ticket(order_id)
         st.rerun()
 
-
 # ==========================================
 # 4. USER INTERFACES
 # ==========================================
@@ -228,10 +226,8 @@ def render_login():
     _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        try:
-            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception:
-            st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-weight:900;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-weight:900;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
             
         st.markdown("<h4 style='text-align:center; color:#888;'>WELCOME. ENTER YOUR PHONE NUMBER.</h4>", unsafe_allow_html=True)
         phone_input = st.text_input("PHONE", placeholder="417-000-0000", label_visibility="collapsed")
@@ -242,8 +238,7 @@ def render_login():
                 st.session_state.view_mode = "kds"
                 st.rerun()
             elif len(clean_key) >= 10:
-                if clean_key == SystemConfig.ADMIN_CODE: 
-                    st.session_state.is_admin = True
+                if clean_key == SystemConfig.ADMIN_CODE: st.session_state.is_admin = True
                 sync_user_data(clean_key)
                 st.session_state.view_mode = "customer"
                 st.session_state.phone_number = clean_key
@@ -252,10 +247,8 @@ def render_login():
 def render_customer_os():
     _, logo_col, _ = st.columns([1, 2, 1])
     with logo_col: 
-        try:
-            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception:
-            st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
     pts = st.session_state.get('reward_points', 0)
     tier, target, next_t, t_color = get_tier_info(pts)
@@ -263,10 +256,7 @@ def render_customer_os():
 
     st.markdown(f"""
         <div class="status-engine" style="border-color: {t_color};">
-            <div class="status-header">
-                <span style="color: {t_color};">{tier}</span>
-                <span>{pts} / {target} PTS</span>
-            </div>
+            <div class="status-header"><span style="color: {t_color};">{tier}</span><span>{pts} / {target} PTS</span></div>
             <div style="width: 100%; background: #222; height: 8px; border-radius: 4px; overflow: hidden; margin-top:10px;">
                 <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
             </div>
@@ -274,19 +264,16 @@ def render_customer_os():
     """, unsafe_allow_html=True)
 
     menu = get_master_menu()
-    categories = list(menu.keys())
     t1, t2 = st.columns(2)
     
-    for i, cat in enumerate(categories):
-        target_col = t1 if i % 2 == 0 else t2
-        with target_col:
-            style_class = ""
-            if cat == st.session_state.current_cat: style_class = "active-tab"
+    for i, cat in enumerate(list(menu.keys())):
+        with (t1 if i % 2 == 0 else t2):
+            style_class = "active-tab" if cat == st.session_state.current_cat else ""
             if cat == "La Reserva":
                 if pts < 5000:
                     st.button(f"🔒 {cat}", disabled=True)
                     continue
-                style_class = "active-reserva"
+                style_class = "active-reserva" if cat == st.session_state.current_cat else ""
             
             st.markdown(f'<div class="{style_class}">', unsafe_allow_html=True)
             if st.button(cat, key=f"tab_{cat}"):
@@ -295,27 +282,16 @@ def render_customer_os():
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
-    items = menu[st.session_state.current_cat]
     cols = st.columns(2)
-    for idx, item in enumerate(items):
+    for idx, item in enumerate(menu[st.session_state.current_cat]):
         with cols[idx % 2]:
-            st.markdown(f"""
-                <div class="menu-card">
-                    <div>
-                        <div class="item-title">{item['name']}</div>
-                        <div class="item-desc">{item['desc']}</div>
-                    </div>
-                    <div class="price-tag">${item['price']:.2f}</div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
             if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}"):
                 st.session_state.cart.append(item)
                 st.toast(f"Added {item['name']}")
                 st.rerun()
 
-    st.markdown('<div class="manifest-container">', unsafe_allow_html=True)
-    st.markdown('<div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart:
         st.write("YOUR SELECTIONS WILL APPEAR HERE.")
     else:
@@ -326,13 +302,7 @@ def render_customer_os():
         for item in st.session_state.cart:
             st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
         
-        st.markdown(f"""
-            <div style="margin-top: 15px; color: #666; font-size: 14px;">
-                <div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div>
-                <div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div>
-            </div>
-            <div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style="margin-top: 15px; color: #666; font-size: 14px;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
@@ -348,18 +318,14 @@ def render_customer_os():
             if st.button("G Pay", key="gp_pay"): process_order("Google Pay", total)
             st.markdown('</div>', unsafe_allow_html=True)
         
-        if st.button("CREDIT / DEBIT (MFA SECURED)", use_container_width=True):
-            process_order("Saved Card", total)
-
+        if st.button("CREDIT / DEBIT (MFA SECURED)", use_container_width=True): process_order("Saved Card", total)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_kds():
     _, logo_col, _ = st.columns([1, 1, 1])
     with logo_col: 
-        try:
-            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception:
-            st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME} KITCHEN</h2>", unsafe_allow_html=True)
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME} KITCHEN</h2>", unsafe_allow_html=True)
             
     st.markdown("<hr style='border-color:#333; margin-top:0;'>", unsafe_allow_html=True)
     
@@ -367,32 +333,20 @@ def render_kds():
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
         if st.button("BUMP OLDEST (SPACE BAR)", type="primary", use_container_width=True):
-            oldest_id = st.session_state.kds_queue[0]['id']
-            complete_kds_ticket(0, oldest_id)
+            complete_kds_ticket(0, st.session_state.kds_queue[0]['id'])
 
         st.markdown("<br>", unsafe_allow_html=True)
         cols = st.columns(3)
         for i, order in enumerate(st.session_state.kds_queue):
             with cols[i % 3]:
                 b_class = "kds-dine-in" if "DINE-IN" in order['type'] else "kds-to-go"
-                st.markdown(f"""
-                    <div class="kds-card">
-                        <div class="kds-badge {b_class}">{order['type']}</div>
-                        <div class="ticket-id">#{order['id']}</div>
-                        <div class="ticket-items">
-                            {'<br>'.join(order['items'])}
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"DONE #{order['id']}", key=f"k_{order['id']}"):
-                    complete_kds_ticket(i, order['id'])
+                st.markdown(f"""<div class="kds-card"><div class="kds-badge {b_class}">{order['type']}</div><div class="ticket-id">#{order['id']}</div><div class="ticket-items">{'<br>'.join(order['items'])}</div></div>""", unsafe_allow_html=True)
+                if st.button(f"DONE #{order['id']}", key=f"k_{order['id']}"): complete_kds_ticket(i, order['id'])
     
     st_autorefresh(interval=10000, key="kds_refresh")
 
 def render_admin_os():
-    st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1>", unsafe_allow_html=True)
-    st.markdown("<hr style='border-color: #333;'>", unsafe_allow_html=True)
-    
+    st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
     if st.button("⬅ EXIT SECURE SESSION", type="secondary"):
         st.session_state.is_admin = False
         st.rerun()
@@ -402,53 +356,34 @@ def render_admin_os():
         st.warning("No financial data found. The sales ledger is currently empty.")
         return
 
-    total_revenue = sum(order['total'] for order in sales_data)
-    total_orders = len(sales_data)
-    aov = total_revenue / total_orders if total_orders > 0 else 0
+    total_rev = sum(order['total'] for order in sales_data)
+    total_ords = len(sales_data)
+    aov = total_rev / total_ords if total_ords > 0 else 0
     
     st.markdown("<br>", unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"<div class='metric-box'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_revenue:.2f}</div></div>", unsafe_allow_html=True)
-    with m2: st.markdown(f"<div class='metric-box'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>{total_orders}</div></div>", unsafe_allow_html=True)
+    with m1: st.markdown(f"<div class='metric-box'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_rev:.2f}</div></div>", unsafe_allow_html=True)
+    with m2: st.markdown(f"<div class='metric-box'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>{total_ords}</div></div>", unsafe_allow_html=True)
     with m3: st.markdown(f"<div class='metric-box'><div style='color:#888;'>AVERAGE ORDER</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>${aov:.2f}</div></div>", unsafe_allow_html=True)
 
-    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3>", unsafe_allow_html=True)
-    st.markdown("<div class='admin-log-container'>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div class='admin-log-container'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
-        status_color = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
-        st.markdown(f"""
-            <div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;">
-                <div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">
-                    ORDER #{order['order_id']} <span style="float:right; color: {status_color}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span>
-                </div>
-                <div style="color: #888; font-size: 14px; margin-top: 5px;">
-                    {order['type']} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
+        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
-    
     st_autorefresh(interval=15000, key="admin_refresh")
 
 # ==========================================
 # 5. RUNTIME ROUTER
 # ==========================================
-def render_main_os():
-    if st.session_state.is_admin:
-        render_admin_os()
-    else:
-        render_customer_os()
-
 def main():
     init_session()
     inject_styles()
     
-    if st.session_state.view_mode == "login":
-        render_login()
-    elif st.session_state.view_mode == "kds":
-        render_kds()
-    else:
-        render_main_os()
+    if st.session_state.view_mode == "login": render_login()
+    elif st.session_state.view_mode == "kds": render_kds()
+    elif st.session_state.is_admin: render_admin_os()
+    else: render_customer_os()
 
 if __name__ == "__main__":
     main()
