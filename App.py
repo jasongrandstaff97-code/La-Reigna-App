@@ -1,217 +1,234 @@
 import streamlit as st
 from streamlit_pills import pills
+import pandas as pd
 import time
-import base64
+import datetime
+from streamlit_autorefresh import st_autorefresh
+import streamlit.components.v1 as components
 
-# ==============================================================================
-# 1. CORE SYSTEM ARCHITECTURE (The Scaling Engine)
-# ==============================================================================
-# This dictionary is the "Source of Truth." Every key here becomes a Pill Tab.
-MENU_DATABASE = {
-    "Tacos": [
-        {"name": "Street Taco", "desc": "Cilantro, onion, lime, choice of protein", "price": 3.50, "feat": "Popular"},
-        {"name": "Al Pastor", "desc": "Marinated pork, pineapple, spicy salsa", "price": 4.00, "feat": "Classic"},
-        {"name": "Barbacoa", "desc": "Slow-braised beef, tender & rich", "price": 4.50, "feat": ""},
-        {"name": "Carnitas", "desc": "Crispy shredded pork, pickled red onions", "price": 4.00, "feat": ""}
-    ],
-    "Entrees": [
-        {"name": "Enchiladas Verdes", "desc": "3 chicken enchiladas, salsa verde, queso fresco", "price": 14.00, "feat": "Best Seller"},
-        {"name": "Burrito Grande", "desc": "Rice, beans, protein, smothered in house queso", "price": 12.00, "feat": ""},
-        {"name": "Fajita Platter", "desc": "Sizzling steak or chicken, peppers, onions", "price": 18.00, "feat": ""},
-        {"name": "Chimichanga", "desc": "Deep-fried burrito, cheese sauce, pico de gallo", "price": 13.50, "feat": ""}
-    ],
-    "Appetizers": [
-        {"name": "Guacamole & Chips", "desc": "Hand-smashed daily with fresh lime", "price": 8.00, "feat": ""},
-        {"name": "Queso Fundido", "desc": "Melted cheese blend with spicy chorizo", "price": 9.00, "feat": "Chef's Pick"},
-        {"name": "Street Corn", "desc": "Elote with cotija, tajin, and lime crema", "price": 6.00, "feat": ""},
-        {"name": "Nachos Supremos", "desc": "Queso, jalapeños, beans, pico, sour cream", "price": 11.00, "feat": ""}
-    ],
-    "Drinks": [
-        {"name": "House Margarita", "desc": "Gold tequila, fresh lime, organic agave", "price": 9.00, "feat": "Signature"},
-        {"name": "Paloma", "desc": "Grapefruit, lime, tequila, soda splash", "price": 10.00, "feat": ""},
-        {"name": "Agua Fresca", "desc": "Watermelon, Pineapple, or Horchata", "price": 4.00, "feat": ""},
-        {"name": "Jarritos", "desc": "Mexican soda: Mango, Lime, or Mandarina", "price": 3.00, "feat": ""}
-    ],
-    "Desserts": [
-        {"name": "Churros", "desc": "Cinnamon sugar with Mexican chocolate dip", "price": 7.00, "feat": ""},
-        {"name": "Tres Leches", "desc": "Classic soaked sponge cake with cream", "price": 8.00, "feat": ""},
-        {"name": "Flan", "desc": "Traditional caramel custard", "price": 6.00, "feat": ""}
-    ]
-}
+# ==========================================
+# 1. GLOBAL SYSTEM CONFIGURATION
+# ==========================================
+class SystemConfig:
+    RESTAURANT_NAME = "La Reina"
+    VERSION = "2.0.4-PRO"
+    PRIMARY_COLOR = "#FFD700"  # Gold
+    ACCENT_COLOR = "#7FFF00"   # Poblano Green
+    BG_COLOR = "#000000"       # Deep Black
+    LOGO_PATH = "logo.png"     # Case-sensitive file name
+    REFRESH_RATE = 5000        # 5 Seconds for live order syncing
 
-# ==============================================================================
-# 2. BRANDING & BEHAVIORAL UI (The Moat)
-# ==============================================================================
-st.set_page_config(page_title="La Reina OS", layout="wide")
+st.set_page_config(
+    page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-def apply_branding():
+# ==========================================
+# 2. ADVANCED CSS ENGINE (Industrial UX)
+# ==========================================
+def inject_custom_styles():
     st.markdown(f"""
         <style>
-        /* Dark Mode Ergonomics */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
         .stApp {{
-            background-color: #000000;
+            background-color: {SystemConfig.BG_COLOR};
             color: #FFFFFF;
-        }}
-        
-        /* The Poblano Pulse - Operational Status */
-        .status-header {{
-            background-color: #4CBB17;
-            color: black;
-            padding: 10px;
-            text-align: center;
-            font-weight: 900;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-            box-shadow: 0px 4px 10px rgba(76,187,23,0.3);
+            font-family: 'JetBrains Mono', monospace;
         }}
 
-        /* Mega-Pill Menu Cards */
-        .menu-item {{
-            background-color: #111111;
+        /* Header & Logo Container */
+        .header-container {{
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #222;
+        }}
+
+        /* The "Poblano" Status Bar */
+        .status-engine {{
+            background: linear-gradient(90deg, #111, #222);
+            border: 2px solid {SystemConfig.ACCENT_COLOR};
+            color: {SystemConfig.ACCENT_COLOR};
+            padding: 12px;
+            text-align: center;
+            font-weight: 700;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 0 15px rgba(127, 255, 0, 0.2);
+        }}
+
+        /* Enterprise Menu Cards */
+        .menu-card {{
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
             border: 1px solid #333;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: border 0.3s;
+            padding: 25px;
+            transition: all 0.3s ease;
+            height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }}
-        .menu-item:hover {{
-            border-color: #D4AF37;
+
+        .menu-card:hover {{
+            border-color: {SystemConfig.PRIMARY_COLOR};
+            transform: translateY(-5px);
         }}
-        
-        .item-name {{
-            color: #D4AF37;
-            font-size: 1.5rem;
-            font-weight: bold;
+
+        .item-title {{
+            color: {SystemConfig.PRIMARY_COLOR};
+            font-size: 26px;
+            font-weight: 800;
             margin-bottom: 5px;
         }}
-        
-        .price-text {{
-            color: #D4AF37;
-            font-family: 'monospace';
-            font-size: 1.3rem;
-            font-weight: bold;
+
+        .item-meta {{
+            color: #888;
+            font-size: 14px;
+            line-height: 1.4;
         }}
-        
-        /* Pills Customization */
-        .stPills {{
-            padding: 10px 0px;
+
+        .price-tag {{
+            color: {SystemConfig.PRIMARY_COLOR};
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 15px;
         }}
+
+        /* Hardware Button Simulation */
+        .stButton>button {{
+            width: 100%;
+            background-color: transparent !important;
+            border: 2px solid #444 !important;
+            color: white !important;
+            height: 50px !important;
+            border-radius: 8px !important;
+            transition: 0.2s;
+        }}
+
+        .stButton>button:hover {{
+            border-color: {SystemConfig.PRIMARY_COLOR} !important;
+            color: {SystemConfig.PRIMARY_COLOR} !important;
+            background: rgba(255, 215, 0, 0.1) !important;
+        }}
+
+        /* Hide Streamlit Junk */
+        header {{visibility: hidden;}}
+        footer {{visibility: hidden;}}
+        #MainMenu {{visibility: hidden;}}
         </style>
     """, unsafe_allow_html=True)
 
-# ==============================================================================
-# 3. SYSTEM UTILITIES
-# ==============================================================================
-class OSBrain:
-    @staticmethod
-    def initialize():
-        if 'cart' not in st.session_state: st.session_state.cart = []
-        if 'phone' not in st.session_state: st.session_state.phone = None
-        if 'points' not in st.session_state: st.session_state.points = 0
-        if 'order_history' not in st.session_state: st.session_state.order_history = []
+# ==========================================
+# 3. STATE & DATA MANAGEMENT
+# ==========================================
+def initialize_session():
+    if 'orders' not in st.session_state:
+        st.session_state.orders = []
+    if 'metrics' not in st.session_state:
+        st.session_state.metrics = {"avg_prep_time": 0, "total_today": 0}
+    if 'last_update' not in st.session_state:
+        st.session_state.last_update = datetime.datetime.now()
 
-    @staticmethod
-    def add_item(item):
-        st.session_state.cart.append(item)
-        st.toast(f"Added {item['name']}! 🌮")
+def load_master_menu():
+    # Structured as an enterprise JSON object for future database migration
+    return {
+        "Tacos": [
+            {"id": "T1", "name": "Street Taco", "desc": "Cilantro, onion, lime, choice of protein", "price": 3.50},
+            {"id": "T2", "name": "Al Pastor", "desc": "Marinated pork, pineapple, spicy salsa", "price": 4.00},
+            {"id": "T3", "name": "Barbacoa", "desc": "Slow-braised beef, tender & rich", "price": 4.50},
+            {"id": "T4", "name": "Carnitas", "desc": "Crispy shredded pork, pickled red onions", "price": 4.00}
+        ],
+        "Entrees": [
+            {"id": "E1", "name": "Enchiladas", "desc": "Three corn tortillas, salsa verde, queso fresco", "price": 12.00},
+            {"id": "E2", "name": "Burrito Grande", "desc": "Rice, beans, protein, smothered in queso", "price": 13.50}
+        ],
+        "Drinks": [
+            {"id": "D1", "name": "House Margarita", "desc": "Gold tequila, lime, agave", "price": 9.00},
+            {"id": "D2", "name": "Paloma", "desc": "Grapefruit soda, tequila, salt rim", "price": 10.00}
+        ],
+        "Rewards 👑": []
+    }
 
-# ==============================================================================
-# 4. MODULAR UI COMPONENTS
-# ==============================================================================
-
-def render_header():
-    # DIRECT LOGO LOGIC
-    # Replace this URL with your raw GitHub logo link or local path
-    LOGO_URL = "https://raw.githubusercontent.com/jason-grandstaff/logo-repo/main/logo.png"
+# ==========================================
+# 4. HARDWARE INTEGRATION: Audio & Key-Listening
+# ==========================================
+def inject_hardware_listeners():
+    # Audio Alert & Spacebar Listener
+    hardware_js = """
+    <script>
+    const doc = window.parent.document;
+    const audio = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3');
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    doc.addEventListener('keydown', function(e) {
+        if (e.keyCode === 32) { // Spacebar (Physical Bump Bar)
+            window.parent.postMessage({type: 'BUMP_ORDER'}, '*');
+        }
+    });
+    </script>
+    """
+    components.html(hardware_js, height=0)
+
+# ==========================================
+# 5. CORE UI LAYOUT
+# ==========================================
+def main():
+    initialize_session()
+    inject_custom_styles()
+    inject_hardware_listeners()
+    
+    # 5a. Global Logo Injection (Centering logic)
+    _, logo_col, _ = st.columns([1, 2, 1])
+    with logo_col:
         try:
-            st.image(LOGO_URL, width=350)
+            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except:
-            st.markdown("<h1 style='text-align:center; color:#D4AF37; font-size:4rem;'>LA REINA</h1>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align:center; margin-top:-20px;'>AUTHENTIC MEXICAN KITCHEN & CANTINA</p>", unsafe_allow_html=True)
-    
-    st.markdown('<div class="status-header">STATUS: POBLANO 🫑 LIVE ENGINE</div>', unsafe_allow_html=True)
+            st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>LA REINA</h1>", unsafe_allow_html=True)
 
-def render_rewards_center():
-    st.markdown("## 👑 The Kingdom Rewards")
-    st.write("Enter your number to track points and unlock free items.")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        num = st.text_input("Mobile Number", placeholder="417-XXX-XXXX", 
-                            value=st.session_state.phone if st.session_state.phone else "")
-        if st.button("Sync Account", use_container_width=True):
-            st.session_state.phone = num
-            st.success("Account Synced.")
-            st.balloons()
-    
-    with c2:
-        if st.session_state.phone:
-            st.metric("Your Points", f"{st.session_state.points} PTS")
-            st.progress(min(st.session_state.points / 100, 1.0))
-            st.caption("100 Points = 1 Free Specialty Margarita")
+    # 5b. The Industrial Status Bar
+    st.markdown(f"""
+        <div class="status-engine">
+            STATUS: POBLANO 🫑 | VERSION {SystemConfig.VERSION} | ENGINE LIVE
+        </div>
+    """, unsafe_allow_html=True)
 
-def render_menu_engine(category):
-    items = MENU_DATABASE.get(category, [])
-    
-    # Render 2 items per row for professional "Grid" feel
-    for i in range(0, len(items), 2):
-        row = st.columns(2)
-        for idx, col in enumerate(row):
-            if i + idx < len(items):
-                item = items[i+idx]
-                with col:
+    # 5c. Multi-Category Navigation
+    menu = load_master_menu()
+    selected_category = pills("", list(menu.keys()), index=0, 
+                              active_format="bold",
+                              colors={"active": "#FF4B4B", "inactive": "#222"})
+
+    # 5d. Grid Engine (Dynamic Column Logic)
+    if selected_category:
+        items = menu[selected_category]
+        if not items:
+            st.info("Rewards Portal initializing. Connect your La Reina membership card to continue.")
+        else:
+            cols = st.columns(2)
+            for idx, item in enumerate(items):
+                with cols[idx % 2]:
+                    # The Menu Card Component
                     st.markdown(f"""
-                        <div class="menu-item">
-                            <div class="item-name">{item['name']}</div>
-                            <div style="color:#888; margin-bottom:10px;">{item['desc']}</div>
-                            <div class="price-text">${item['price']:.2f}</div>
+                        <div class="menu-card">
+                            <div>
+                                <div class="item-title">{item['name']}</div>
+                                <div class="item-meta">{item['desc']}</div>
+                            </div>
+                            <div class="price-tag">${item['price']:.2f}</div>
                         </div>
                     """, unsafe_allow_html=True)
-                    if st.button(f"Add {item['name']}", key=f"btn_{item['name']}"):
-                        OSBrain.add_item(item)
+                    
+                    # Action Logic
+                    if st.button(f"SELECT {item['id']}", key=f"btn_{item['id']}"):
+                        st.toast(f"Adding {item['name']} to order...")
 
-# ==============================================================================
-# 5. MAIN EXECUTION (The Bootloader)
-# ==============================================================================
-def main():
-    OSBrain.initialize()
-    apply_branding()
-    
-    # Sidebar: The "Command Center"
-    with st.sidebar:
-        st.title("🛒 Your Order")
-        if not st.session_state.cart:
-            st.write("Cart is empty.")
-        else:
-            for i in st.session_state.cart:
-                st.write(f"• {i['name']} (${i['price']:.2f})")
-            
-            total = sum(item['price'] for item in st.session_state.cart)
-            st.markdown(f"### Total: **${total:.2f}**")
-            
-            if st.button("PLACE ORDER 🚀", use_container_width=True):
-                st.session_state.points += int(total)
-                st.session_state.cart = []
-                st.success("Sent to Kitchen!")
-
-    # Main Screen Logic
-    render_header()
-    
-    # DYNAMIC PILL GENERATION
-    # This automatically includes EVERY key in MENU_DATABASE
-    pill_options = list(MENU_DATABASE.keys()) + ["Rewards 👑"]
-    selected_tab = pills("", pill_options, index=0, label_visibility="collapsed")
-    
-    st.write("---")
-    
-    if "Rewards" in selected_tab:
-        render_rewards_center()
-    else:
-        render_menu_engine(selected_tab)
+    # 5e. Real-Time Logic (The "Sync" Engine)
+    st_autorefresh(interval=SystemConfig.REFRESH_RATE, key="sync_engine")
 
 if __name__ == "__main__":
     main()
