@@ -1,6 +1,6 @@
 import streamlit as st
 import random
-from database_engine import SystemConfig, sync_user_data, update_user_points, log_transaction, get_sales_data
+from database_engine import SystemConfig, sync_user_data, update_user_points, log_transaction, get_sales_data, bump_kitchen_ticket
 from streamlit_autorefresh import st_autorefresh
 
 # --- 1. SYSTEM CONFIG & STYLES ---
@@ -116,34 +116,30 @@ def init_session():
 def process_order(payment_method, total_price):
     order_id = str(random.randint(1000, 9999))
     
-    # 1. Compile items for KDS
-    # Tally identical items (e.g., 2x Street Taco)
     item_counts = {}
     for item in st.session_state.cart:
         item_counts[item['name']] = item_counts.get(item['name'], 0) + 1
     kds_item_list = [f"{count}x {name}" for name, count in item_counts.items()]
 
-    # 2. Push to KDS Queue
     st.session_state.kds_queue.append({
         "id": order_id,
         "type": st.session_state.order_type,
         "items": kds_item_list
     })
 
-    # 3. Database Engine Logs
     pts_earned = int(total_price)
     update_user_points(st.session_state.phone_number, pts_earned)
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price)
 
-    # 4. Clean Up
     st.session_state.cart = []
     st.success(f"Order #{order_id} sent to kitchen via {payment_method}.")
     st.balloons()
     st.rerun()
 
-def complete_kds_ticket(index):
+def complete_kds_ticket(index, order_id):
     if st.session_state.kds_queue:
         st.session_state.kds_queue.pop(index)
+        bump_kitchen_ticket(order_id)
         st.rerun()
 
 # --- 4. THE SANITIZED PORTAL ---
@@ -151,7 +147,12 @@ def render_login():
     _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        # Cloud-Safe Image Fallback
+        try:
+            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception:
+            st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-weight:900;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+            
         st.markdown("<h4 style='text-align:center; color:#888;'>WELCOME. ENTER YOUR PHONE NUMBER.</h4>", unsafe_allow_html=True)
         
         phone_input = st.text_input("PHONE", placeholder="417-000-0000", label_visibility="collapsed")
@@ -173,12 +174,16 @@ def render_login():
                 st.session_state.phone_number = clean_key
                 st.rerun()
 
-# --- 5. THE CUSTOMER UI (WITH REAL CHECKOUT ROUTING) ---
+# --- 5. THE CUSTOMER UI ---
 def render_customer_os():
     _, logo_col, _ = st.columns([1, 2, 1])
-    with logo_col: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+    with logo_col: 
+        # Cloud-Safe Image Fallback
+        try:
+            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception:
+            st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
-    # Status Bar
     pts = st.session_state.get('reward_points', 0)
     tier, target, next_t, t_color = get_tier_info(pts)
     progress = min(int((pts / target) * 100), 100)
@@ -195,7 +200,6 @@ def render_customer_os():
         </div>
     """, unsafe_allow_html=True)
 
-    # The 6-Tab Grid
     menu = get_master_menu()
     categories = list(menu.keys())
     t1, t2 = st.columns(2)
@@ -217,7 +221,6 @@ def render_customer_os():
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # Dynamic Menu Iteration
     st.markdown(f"### {st.session_state.current_cat.upper()}")
     items = menu[st.session_state.current_cat]
     cols = st.columns(2)
@@ -237,7 +240,6 @@ def render_customer_os():
                 st.toast(f"Added {item['name']}")
                 st.rerun()
 
-    # The Checkout Manifest
     st.markdown('<div class="manifest-container">', unsafe_allow_html=True)
     st.markdown('<div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     
@@ -262,7 +264,6 @@ def render_customer_os():
         st.markdown("<br>", unsafe_allow_html=True)
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
-        # ACTIVE PAYMENT ROUTING
         st.markdown("<br>", unsafe_allow_html=True)
         p1, p2 = st.columns(2)
         with p1: 
@@ -282,15 +283,21 @@ def render_customer_os():
 # --- 6. THE KITCHEN VIEW (LIVE KDS) ---
 def render_kds():
     _, logo_col, _ = st.columns([1, 1, 1])
-    with logo_col: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+    with logo_col: 
+        # Cloud-Safe Image Fallback
+        try:
+            st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception:
+            st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME} KITCHEN</h2>", unsafe_allow_html=True)
+            
     st.markdown("<hr style='border-color:#333; margin-top:0;'>", unsafe_allow_html=True)
     
     if not st.session_state.kds_queue:
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        # Spacebar bump targets this primary button
         if st.button("BUMP OLDEST (SPACE BAR)", type="primary", use_container_width=True):
-            complete_kds_ticket(0)
+            oldest_id = st.session_state.kds_queue[0]['id']
+            complete_kds_ticket(0, oldest_id)
 
         st.markdown("<br>", unsafe_allow_html=True)
         cols = st.columns(3)
@@ -307,11 +314,11 @@ def render_kds():
                     </div>
                 """, unsafe_allow_html=True)
                 if st.button(f"DONE #{order['id']}", key=f"k_{order['id']}"):
-                    complete_kds_ticket(i)
+                    complete_kds_ticket(i, order['id'])
     
     st_autorefresh(interval=10000, key="kds_refresh")
 
-# --- 7. THE RESTORED EXECUTIVE DASHBOARD (ADMIN) ---
+# --- 7. THE EXECUTIVE DASHBOARD (ADMIN) ---
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: #333;'>", unsafe_allow_html=True)
@@ -325,19 +332,16 @@ def render_admin_os():
         st.warning("No financial data found. The sales ledger is currently empty.")
         return
 
-    # Metrics Calculation
     total_revenue = sum(order['total'] for order in sales_data)
     total_orders = len(sales_data)
     aov = total_revenue / total_orders if total_orders > 0 else 0
     
-    # Render Metrics
     st.markdown("<br>", unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
     with m1: st.markdown(f"<div class='metric-box'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_revenue:.2f}</div></div>", unsafe_allow_html=True)
     with m2: st.markdown(f"<div class='metric-box'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>{total_orders}</div></div>", unsafe_allow_html=True)
     with m3: st.markdown(f"<div class='metric-box'><div style='color:#888;'>AVERAGE ORDER</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>${aov:.2f}</div></div>", unsafe_allow_html=True)
 
-    # Live Transaction Log
     st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3>", unsafe_allow_html=True)
     st.markdown("<div class='admin-log-container'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
