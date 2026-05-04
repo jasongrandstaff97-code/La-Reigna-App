@@ -3,6 +3,8 @@ from streamlit_pills import pills
 from streamlit_autorefresh import st_autorefresh
 import streamlit.components.v1 as components
 import random
+import json
+import os
 
 # ==========================================
 # 1. GLOBAL SYSTEM CONFIGURATION
@@ -15,6 +17,7 @@ class SystemConfig:
     LOGO_PATH = "la_reina_dark.png" 
     REFRESH_RATE = 5000        # Live sync interval
     TAX_RATE = 0.085           # 8.5% Tax
+    DB_FILE = "la_reina_db.json" # The Persistent Memory Ledger
 
 st.set_page_config(
     page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
@@ -23,7 +26,43 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. ADVANCED CSS ENGINE
+# 2. THE PERSISTENT DATABASE ENGINE
+# ==========================================
+def load_db():
+    """Reads the long-term memory ledger."""
+    if os.path.exists(SystemConfig.DB_FILE):
+        with open(SystemConfig.DB_FILE, 'r') as f:
+            return json.load(f)
+    return {} # Return empty dictionary if no database exists yet
+
+def save_db(db_data):
+    """Writes to the long-term memory ledger."""
+    with open(SystemConfig.DB_FILE, 'w') as f:
+        json.dump(db_data, f, indent=4)
+
+def sync_user_data(phone_number):
+    """Checks if user exists, loads points, or creates a new profile."""
+    db = load_db()
+    if phone_number not in db:
+        # Create new customer profile
+        db[phone_number] = {"points": 0, "lifetime_orders": 0}
+        save_db(db)
+    
+    # Load data into active session RAM
+    st.session_state.reward_points = db[phone_number]["points"]
+
+def update_user_points(phone_number, points_to_add):
+    """Adds points to the persistent ledger after a transaction."""
+    db = load_db()
+    if phone_number in db:
+        db[phone_number]["points"] += points_to_add
+        db[phone_number]["lifetime_orders"] += 1
+        save_db(db)
+        # Update active RAM so the UI updates instantly
+        st.session_state.reward_points = db[phone_number]["points"]
+
+# ==========================================
+# 3. ADVANCED CSS ENGINE
 # ==========================================
 def inject_custom_styles():
     st.markdown(f"""
@@ -114,7 +153,6 @@ def inject_custom_styles():
             background: rgba(255, 215, 0, 0.1) !important;
         }}
         
-        /* Specialized Checkout Button */
         .checkout-btn>button {{
             background-color: {SystemConfig.ACCENT_COLOR} !important;
             color: #000 !important;
@@ -128,7 +166,6 @@ def inject_custom_styles():
             box-shadow: 0 0 20px rgba(127, 255, 0, 0.5) !important;
         }}
 
-        /* Login Input Styling */
         .stTextInput>div>div>input {{
             background-color: #111 !important;
             color: {SystemConfig.PRIMARY_COLOR} !important;
@@ -145,7 +182,6 @@ def inject_custom_styles():
             box-shadow: 0 0 10px rgba(127, 255, 0, 0.3) !important;
         }}
 
-        /* Receipt/Cart Styling */
         .receipt-container {{
             background: #111;
             border: 1px solid #333;
@@ -172,7 +208,6 @@ def inject_custom_styles():
             color: {SystemConfig.PRIMARY_COLOR};
         }}
 
-        /* Order Type Radio Button Centering */
         div[role="radiogroup"] {{
             justify-content: center;
             margin-bottom: 20px;
@@ -199,18 +234,17 @@ def inject_custom_styles():
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. STATE, COMMERCE LOGIC & DATABASE
+# 4. STATE & MASTER MENU
 # ==========================================
 def initialize_session():
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
     if 'phone_number' not in st.session_state:
         st.session_state.phone_number = ""
-    if 'reward_points' not in st.session_state:
-        st.session_state.reward_points = 0 
+    # We no longer hardcode reward_points to 0 here. 
+    # It gets pulled from the database during login.
     if 'cart' not in st.session_state:
         st.session_state.cart = [] 
-    # NEW: Order Type State Tracking
     if 'order_type' not in st.session_state:
         st.session_state.order_type = "DINE-IN 🍽️"
 
@@ -254,7 +288,7 @@ def load_master_menu():
     }
 
 # ==========================================
-# 4. SCREENS (Login & Main OS)
+# 5. SCREENS (Login & Main OS)
 # ==========================================
 def render_login_screen():
     st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -274,6 +308,11 @@ def render_login_screen():
         if phone_input:
             cleaned_phone = ''.join(filter(str.isdigit, phone_input))
             if len(cleaned_phone) >= 10: 
+                # ---------------------------------------------
+                # DATABASE SYNC: Load or create the user here
+                # ---------------------------------------------
+                sync_user_data(cleaned_phone)
+                
                 st.session_state.authenticated = True
                 st.session_state.phone_number = cleaned_phone
                 st.rerun() 
@@ -357,12 +396,13 @@ def render_main_os():
         
         if receipt_img:
             st.success("Receipt successfully scanned! Processing transaction...")
-            st.session_state.reward_points += 45 
+            # WRITE TO DATABASE
+            update_user_points(st.session_state.phone_number, 45)
             st.balloons() 
             st.rerun()
 
     # ==========================================
-    # 5b. CHECKOUT PORTAL (Now with Dine-In/To-Go Routing)
+    # 5b. CHECKOUT PORTAL
     # ==========================================
     elif selected_category == "Checkout 🛒":
         st.markdown(f"<h2 style='color: {SystemConfig.PRIMARY_COLOR}; text-align: center;'>YOUR TRAY</h2>", unsafe_allow_html=True)
@@ -397,7 +437,6 @@ def render_main_os():
                 </div><br>
                 """, unsafe_allow_html=True)
                 
-                # --- NEW ORDER ROUTING TOGGLE ---
                 st.markdown("<div style='text-align: center; color: #888; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px;'>ORDER DESTINATION</div>", unsafe_allow_html=True)
                 
                 st.session_state.order_type = st.radio(
@@ -409,20 +448,22 @@ def render_main_os():
                 )
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                # --------------------------------
                 
                 st.markdown("<div class='checkout-btn'>", unsafe_allow_html=True)
                 if st.button(f"PLACE {st.session_state.order_type} ORDER (${total:.2f})", use_container_width=True):
                     order_num = random.randint(1000, 9999)
                     points_earned = int(cart_subtotal)
-                    st.session_state.reward_points += points_earned
                     
-                    # Capture the order type before clearing the cart
+                    # ---------------------------------------------
+                    # DATABASE SYNC: Save points to hard drive
+                    # ---------------------------------------------
+                    update_user_points(st.session_state.phone_number, points_earned)
+                    
                     final_type = st.session_state.order_type
                     st.session_state.cart = []
                     
                     st.success(f"ORDER #{order_num} CONFIRMED FOR {final_type}! Sent to kitchen.")
-                    st.toast(f"Transaction complete. +{points_earned} Points added to your account!")
+                    st.toast(f"Transaction complete. +{points_earned} Points permanently added to your account!")
                     st.balloons()
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
