@@ -1,88 +1,25 @@
-import json
-import os
-import datetime
-import streamlit as st
+# database_engine.py
 
-# ==========================================
-# CENTRAL SYSTEM CONFIGURATION
-# ==========================================
 class SystemConfig:
-    RESTAURANT_NAME = "La Reina"
-    PRIMARY_COLOR = "#FFD700"  # Gold
-    ACCENT_COLOR = "#7FFF00"   # Poblano Green
-    BG_COLOR = "#000000"       # Deep Black
-    LOGO_PATH = "la_reina_dark.png" 
-    TAX_RATE = 0.085           # 8.5% Tax
-    DB_FILE = "la_reina_db.json"      # User/Rewards Ledger
-    SALES_DB = "la_reina_sales.json"  # Financial/Ticket Ledger
-    ADMIN_CODE = "9999999999"         # God Mode Unlock
+    RESTAURANT_NAME = "La Reina Margaritas"
+    PRIMARY_COLOR = "#D4AF37"
+    BG_COLOR = "#000000"
+    LOGO_PATH = "logo.png"  # Make sure you have a logo.png in your folder!
+    ADMIN_CODE = "9999999999"
 
-# ==========================================
-# REWARDS & USER DATABASE OPERATIONS
-# ==========================================
-def load_db():
-    if os.path.exists(SystemConfig.DB_FILE):
-        with open(SystemConfig.DB_FILE, 'r') as f:
-            return json.load(f)
-    return {} 
+def sync_user_data(phone):
+    # In the future, this hooks into your Juskvi DB
+    pass
 
-def save_db(db_data):
-    with open(SystemConfig.DB_FILE, 'w') as f:
-        json.dump(db_data, f, indent=4)
+def update_user_points(phone, points):
+    pass
 
-def sync_user_data(phone_number):
-    db = load_db()
-    if phone_number not in db:
-        db[phone_number] = {"points": 0, "lifetime_orders": 0}
-        save_db(db)
-    st.session_state.reward_points = db[phone_number]["points"]
-
-def update_user_points(phone_number, points_to_add):
-    db = load_db()
-    if phone_number in db:
-        db[phone_number]["points"] += points_to_add
-        db[phone_number]["lifetime_orders"] += 1
-        save_db(db)
-        st.session_state.reward_points = db[phone_number]["points"]
-
-# ==========================================
-# FINANCIAL & KITCHEN TICKET OPERATIONS
-# ==========================================
-def log_transaction(order_num, order_type, cart_items, total_price):
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            sales = json.load(f)
-    else:
-        sales = []
-    
-    new_order = {
-        "order_id": order_num,
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "type": order_type,
-        "items": [item['name'] for item in cart_items],
-        "total": total_price,
-        "status": "PENDING"  # Flags for the KDS
-    }
-    
-    sales.append(new_order)
-    with open(SystemConfig.SALES_DB, 'w') as f:
-        json.dump(sales, f, indent=4)
+def log_transaction(order_id, order_type, cart, total):
+    pass
 
 def get_sales_data():
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            return json.load(f)
-    return []
-
-def bump_kitchen_ticket(order_id):
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f:
-            sales = json.load(f)
-            
-        for order in sales:
-            if order["order_id"] == order_id:
-                order["status"] = "COMPLETED"
-                break
-                
-        with open(SystemConfig.SALES_DB, 'w') as f:
-            json.dump(sales, f, indent=4)
+    # Mock data so the Executive Dashboard has something to display
+    return [
+        {"order_id": "1001", "type": "DINE-IN 🍽️", "items": ["Speedy Gonzales"], "total": 7.99, "status": "COMPLETED"},
+        {"order_id": "1002", "type": "TO-GO 🛍️", "items": ["Wagyu Birria Tacos", "La Reina Rita"], "total": 32.99, "status": "PENDING"}
+    ]
