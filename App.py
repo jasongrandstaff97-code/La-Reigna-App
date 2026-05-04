@@ -1,275 +1,288 @@
 import streamlit as st
 from streamlit_pills import pills
 import time
-import base64
+import uuid
+from datetime import datetime
 
-# ==========================================
-# 1. GLOBAL SYSTEM CONFIGURATION (The OS DNA)
-# ==========================================
+# ==============================================================================
+# 1. GLOBAL CONFIGURATION & BRANDING (THE "MOAT")
+# ==============================================================================
+# This section defines the entire visual identity. 
+# Changing this dictionary allows you to clone the OS for any new client.
 SYSTEM_CONFIG = {
-    "version": "2.1.0-PRO",
+    "app_name": "La Reina Margaritas",
+    "version": "3.0.4-PRO",
     "branding": {
-        "name": "La Reina Margaritas",
-        "primary": "#D4AF37",    # Gold
-        "secondary": "#4CBB17",  # Poblano Green
-        "bg_dark": "#0A0A0A",    # Deepest Black
-        "card_bg": "#161616",    # Subtle gray-black
-        "text": "#FFFFFF",
-        "logo_url": "https://raw.githubusercontent.com/jason-grandstaff/logo-repo/main/la_reina_logo.png"
+        "gold": "#D4AF37",
+        "poblano": "#4CBB17",
+        "black": "#000000",
+        "card_bg": "#121212",
+        "text_main": "#FFFFFF",
+        "text_dim": "#888888"
     },
-    "audio": {
-        "order_ping": "https://www.soundjay.com/buttons/beep-01a.mp3" # Placeholder
+    "paths": {
+        "logo": "logo.png"  # Ensure this file is in your GitHub folder
     }
 }
 
-# ==========================================
-# 2. DATA INFRASTRUCTURE (The Master Inventory)
-# ==========================================
-# In V3, this moves to Supabase. For now, it's a robust object.
-MENU_DATABASE = {
+# ==============================================================================
+# 2. MASTER MENU INFRASTRUCTURE
+# ==============================================================================
+# A robust data structure that maps categories to specific product objects.
+MENU_DB = {
     "Tacos": [
-        {"id": "t1", "name": "Street Taco", "desc": "Cilantro, onion, lime", "price": 3.50, "image": "🌮"},
-        {"id": "t2", "name": "Al Pastor", "desc": "Marinated pork, pineapple", "price": 4.00, "image": "🍍"},
-        {"id": "t3", "name": "Barbacoa", "desc": "Slow-braised beef", "price": 4.50, "image": "🥩"}
+        {"id": "t1", "name": "Street Taco", "desc": "Fresh cilantro, onion, lime", "price": 3.50, "icon": "🌮"},
+        {"id": "t2", "name": "Al Pastor", "desc": "Marinated pork, pineapple, spice", "price": 4.00, "icon": "🍍"},
+        {"id": "t3", "name": "Barbacoa", "desc": "Slow-braised beef, tender & juicy", "price": 4.50, "icon": "🥩"},
+        {"id": "t4", "name": "Carnitas", "desc": "Crispy pork, pickled onion", "price": 4.00, "icon": "🐷"}
     ],
     "Entrees": [
-        {"id": "e1", "name": "Enchiladas Verdes", "desc": "Three chicken enchiladas", "price": 14.00, "image": "🥘"},
-        {"id": "e2", "name": "Burrito Grande", "desc": "Rice, beans, protein, cheese", "price": 12.00, "image": "🌯"},
-        {"id": "e3", "name": "Fajita Platter", "desc": "Sizzling peppers & onions", "price": 18.00, "image": "🔥"}
+        {"id": "e1", "name": "Enchiladas Verdes", "desc": "3 chicken enchiladas, salsa verde", "price": 14.00, "icon": "🥘"},
+        {"id": "e2", "name": "Burrito Grande", "desc": "Rice, beans, protein, smothered in queso", "price": 12.00, "icon": "🌯"},
+        {"id": "e3", "name": "Fajita Platter", "desc": "Sizzling steak or chicken, peppers", "price": 18.00, "icon": "🔥"},
+        {"id": "e4", "name": "Chimichanga", "desc": "Deep-fried burrito, cheese sauce", "price": 13.50, "icon": "📦"}
     ],
     "Appetizers": [
-        {"id": "a1", "name": "Guacamole & Chips", "desc": "Fresh made daily", "price": 8.00, "image": "🥑"},
-        {"id": "a2", "name": "Queso Fundido", "desc": "Melted cheese with chorizo", "price": 9.00, "image": "🧀"}
+        {"id": "a1", "name": "Guacamole & Chips", "desc": "Hand-smashed daily", "price": 8.00, "icon": "🥑"},
+        {"id": "a2", "name": "Queso Fundido", "desc": "Melted cheese with spicy chorizo", "price": 9.00, "icon": "🧀"},
+        {"id": "a3", "name": "Street Corn", "desc": "Elote with cotija and tajin", "price": 6.00, "icon": "🌽"}
     ],
     "Drinks": [
-        {"id": "d1", "name": "House Margarita", "desc": "Gold tequila, fresh lime", "price": 9.00, "image": "🍹"},
-        {"id": "d2", "name": "Paloma", "desc": "Grapefruit soda, lime, tequila", "price": 10.00, "image": "🍊"},
-        {"id": "d3", "name": "Agua Fresca", "desc": "Seasonal fresh fruit water", "price": 4.00, "image": "🥤"}
+        {"id": "d1", "name": "House Margarita", "desc": "Gold tequila, fresh lime, agave", "price": 9.00, "icon": "🍹"},
+        {"id": "d2", "name": "Paloma", "desc": "Grapefruit, lime, tequila, soda", "price": 10.00, "icon": "🍊"},
+        {"id": "d3", "name": "Agua Fresca", "desc": "Watermelon or Pineapple fresh", "price": 4.00, "icon": "🥤"},
+        {"id": "d4", "name": "Jarritos", "desc": "Mexican soda, various flavors", "price": 3.00, "icon": "🍾"}
     ]
 }
 
-# ==========================================
-# 3. ADVANCED STYLING ENGINE (The Behavioral UX)
-# ==========================================
-def apply_enterprise_styles():
+# ==============================================================================
+# 3. ADVANCED STYLING (THE PSYCHOLOGICAL UI)
+# ==============================================================================
+def apply_custom_styles():
     st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    
-    html, body, [data-testid="stAppViewContainer"] {{
-        background-color: {SYSTEM_CONFIG['branding']['bg_dark']};
-        color: {SYSTEM_CONFIG['branding']['text']};
-        font-family: 'Inter', sans-serif;
-    }}
-    
-    /* The Mega-Pill Card */
-    .menu-card {{
-        background-color: {SYSTEM_CONFIG['branding']['card_bg']};
-        border: 1px solid #333;
-        border-radius: 16px;
-        padding: 24px;
-        margin-bottom: 16px;
-        transition: transform 0.2s ease, border-color 0.2s ease;
-    }}
-    .menu-card:hover {{
-        border-color: {SYSTEM_CONFIG['branding']['primary']};
-        transform: translateY(-2px);
-    }}
-    
-    /* Status Bars */
-    .poblano-header {{
-        background: linear-gradient(90deg, {SYSTEM_CONFIG['branding']['secondary']} 0%, #2e7d32 100%);
-        color: white;
-        padding: 10px;
-        text-align: center;
-        border-radius: 8px;
-        font-weight: 800;
-        letter-spacing: 1px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    }}
-    
-    /* Buttons */
-    .stButton>button {{
-        background-color: {SYSTEM_CONFIG['branding']['primary']};
-        color: black !important;
-        border-radius: 12px;
-        border: none;
-        font-weight: bold;
-        height: 3em;
-        width: 100%;
-    }}
-    
-    /* KDS Specific Styles */
-    .kds-ticket {{
-        background-color: #f5f5f5;
-        color: #111;
-        padding: 15px;
-        border-left: 10px solid {SYSTEM_CONFIG['branding']['secondary']};
-        border-radius: 5px;
-        margin-bottom: 10px;
-    }}
-    </style>
+        <style>
+        /* Base Environment */
+        .stApp {{
+            background-color: {SYSTEM_CONFIG['branding']['black']};
+            color: {SYSTEM_CONFIG['branding']['text_main']};
+        }}
+        
+        /* The "Poblano" Status Bar */
+        .status-bar {{
+            background-color: {SYSTEM_CONFIG['branding']['poblano']};
+            color: black;
+            padding: 10px;
+            text-align: center;
+            font-weight: 900;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            letter-spacing: 1px;
+            box-shadow: 0px 4px 15px rgba(76, 187, 23, 0.3);
+        }}
+
+        /* Mega-Pill Menu Cards */
+        .menu-card {{
+            background-color: {SYSTEM_CONFIG['branding']['card_bg']};
+            border: 1px solid #333333;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }}
+        .menu-card:hover {{
+            border-color: {SYSTEM_CONFIG['branding']['gold']};
+            transform: translateY(-3px);
+        }}
+
+        /* Gold Branding Elements */
+        h1, h2, h3 {{
+            color: {SYSTEM_CONFIG['branding']['gold']} !important;
+        }}
+        .price-text {{
+            color: {SYSTEM_CONFIG['branding']['gold']};
+            font-size: 1.4rem;
+            font-weight: bold;
+        }}
+        
+        /* Sidebar Cart Styling */
+        [data-testid="stSidebar"] {{
+            background-color: #0A0A0A;
+            border-left: 1px solid #222;
+        }}
+        
+        /* Buttons */
+        .stButton>button {{
+            background-color: {SYSTEM_CONFIG['branding']['gold']};
+            color: black !important;
+            border-radius: 8px;
+            font-weight: bold;
+            border: none;
+            width: 100%;
+        }}
+        </style>
     """, unsafe_allow_html=True)
 
-# ==========================================
-# 4. SYSTEM UTILITIES (The Backend Logic)
-# ==========================================
-class LaReinaOS:
+# ==============================================================================
+# 4. SYSTEM STATE & LOGIC ENGINE
+# ==============================================================================
+class SystemState:
     @staticmethod
-    def init_state():
-        if 'view' not in st.session_state: st.session_state.view = "Customer"
+    def initialize():
         if 'cart' not in st.session_state: st.session_state.cart = []
         if 'orders' not in st.session_state: st.session_state.orders = []
-        if 'user_phone' not in st.session_state: st.session_state.user_phone = None
+        if 'phone' not in st.session_state: st.session_state.phone = None
+        if 'view' not in st.session_state: st.session_state.view = "Customer"
         if 'points' not in st.session_state: st.session_state.points = 0
-
-    @staticmethod
-    def play_sound():
-        # JavaScript Audio Injection
-        sound_html = f"""
-            <audio autoplay>
-                <source src="{SYSTEM_CONFIG['audio']['order_ping']}" type="audio/mp3">
-            </audio>
-        """
-        st.components.v1.html(sound_html, height=0)
 
     @staticmethod
     def add_to_cart(item):
         st.session_state.cart.append(item)
-        st.toast(f"✅ Added {item['name']} to order!")
+        st.toast(f"Added {item['name']} 🌮")
 
-# ==========================================
-# 5. UI MODULES (The Component Library)
-# ==========================================
+    @staticmethod
+    def submit_order():
+        if not st.session_state.cart:
+            return
+        order_id = str(uuid.uuid4())[:5].upper()
+        new_order = {
+            "id": order_id,
+            "items": st.session_state.cart,
+            "time": datetime.now().strftime("%H:%M:%S"),
+            "phone": st.session_state.phone
+        }
+        st.session_state.orders.append(new_order)
+        # Point Calculation: $1 = 1pt
+        subtotal = sum(item['price'] for item in st.session_state.cart)
+        st.session_state.points += int(subtotal)
+        st.session_state.cart = []
+        # Sound trigger placeholder
+        st.success(f"Order #{order_id} sent to kitchen!")
+        st.balloons()
 
-def render_customer_view():
-    st.image(SYSTEM_CONFIG['branding']['logo_url'], width=220)
-    st.markdown('<div class="poblano-header">KITCHEN ONLINE • SELECT ITEMS</div>', unsafe_allow_html=True)
+# ==============================================================================
+# 5. UI COMPONENTS (MODULAR VIEWS)
+# ==============================================================================
 
-    # Navigation Pills
-    categories = list(MENU_DATABASE.keys()) + ["Rewards 👑"]
-    active_tab = pills("Menu", categories, index=0, label_visibility="collapsed")
+def render_branding_header():
+    try:
+        st.image(SYSTEM_CONFIG["paths"]["logo"], width=300)
+    except:
+        st.markdown(f"<h1>{SYSTEM_CONFIG['app_name']}</h1>", unsafe_allow_html=True)
+        st.caption("AUTHENTIC MEXICAN KITCHEN & CANTINA")
+    
+    st.markdown('<div class="status-bar">STATUS: POBLANO 🫑 ONLINE</div>', unsafe_allow_html=True)
 
+def render_customer_ui():
+    render_branding_header()
+    
+    # Navigation Switchboard
+    tabs = list(MENU_DB.keys()) + ["Rewards 👑"]
+    selected = pills("", tabs, index=0, label_visibility="collapsed")
+    
     st.write("---")
-
-    if "Rewards" in active_tab:
+    
+    if "Rewards" in selected:
         render_rewards_center()
     else:
-        # Dual Column Layout for Menu
-        items = MENU_DATABASE.get(active_tab, [])
-        for i in range(0, len(items), 2):
-            cols = st.columns(2)
-            for idx, col in enumerate(cols):
-                if i + idx < len(items):
-                    item = items[i+idx]
-                    with col:
-                        st.markdown(f"""
+        # Dynamic Menu Generator
+        items = MENU_DB.get(selected, [])
+        for item in items:
+            with st.container():
+                col_info, col_action = st.columns([4, 1])
+                with col_info:
+                    st.markdown(f"""
                         <div class="menu-card">
-                            <span style="font-size: 2rem;">{item['image']}</span>
-                            <h3 style="margin: 10px 0;">{item['name']}</h3>
-                            <p style="color: #888; font-size: 0.9rem;">{item['desc']}</p>
-                            <h2 style="color: {SYSTEM_CONFIG['branding']['primary']};">${item['price']:.2f}</h2>
+                            <h3>{item['icon']} {item['name']}</h3>
+                            <p style="color:#888;">{item['desc']}</p>
+                            <span class="price-text">${item['price']:.2f}</span>
                         </div>
-                        """, unsafe_allow_html=True)
-                        if st.button(f"Add {item['name']}", key=item['id']):
-                            LaReinaOS.add_to_cart(item)
+                    """, unsafe_allow_html=True)
+                with col_action:
+                    st.write("") # Spacer
+                    st.write("")
+                    if st.button("➕", key=item['id']):
+                        SystemState.add_to_cart(item)
 
 def render_rewards_center():
     st.title("Loyalty & Rewards")
-    col1, col2 = st.columns([2,1])
+    st.write("### You do anything. You earn everything.")
     
-    with col1:
-        st.markdown("""
-        ### Why Join the Kingdom?
-        * **1 Point** for every $1 spent.
-        * **Free Taco** at 50 points.
-        * **Birthday Surprise** every year.
-        """)
-        
-        phone = st.text_input("Enter Phone Number", value=st.session_state.user_phone if st.session_state.user_phone else "")
-        if st.button("Link Account"):
+    col_input, col_stats = st.columns(2)
+    
+    with col_input:
+        st.markdown("#### Link Your Phone")
+        phone = st.text_input("Mobile Number", placeholder="417-555-5555", 
+                              value=st.session_state.phone if st.session_state.phone else "")
+        if st.button("Access My Kingdom"):
             if len(phone) >= 10:
-                st.session_state.user_phone = phone
-                st.success("Welcome back! Your points are being tracked.")
-                st.balloons()
+                st.session_state.phone = phone
+                st.success("Synchronized. Welcome to the inner circle.")
             else:
-                st.error("Please enter a valid 10-digit mobile number.")
+                st.error("Please enter a valid 10-digit number.")
     
-    with col2:
-        if st.session_state.user_phone:
-            st.metric("Your Points", f"{st.session_state.points} PTS")
-            st.progress(st.session_state.points / 50 if st.session_state.points < 50 else 1.0)
-            st.caption("Next Reward: 50 Points")
+    with col_stats:
+        if st.session_state.phone:
+            st.metric("Total Points", f"{st.session_state.points} PTS")
+            progress = (st.session_state.points % 50) / 50
+            st.write(f"**Next Reward:** {50 - (st.session_state.points % 50)} points away")
+            st.progress(progress)
+            st.caption("50 Points = 1 Free Entree or Margarita")
 
-def render_kds_view():
-    st.markdown(f"<h1 style='color:{SYSTEM_CONFIG['branding']['secondary']}'>Kitchen Display System</h1>", unsafe_allow_html=True)
-    st.write("---")
+def render_kds_ui():
+    st.title("Kitchen Display System (KDS)")
+    st.markdown('<div class="status-bar" style="background-color: #D4AF37;">STAFF VIEW ONLY</div>', unsafe_allow_html=True)
     
     if not st.session_state.orders:
-        st.info("Waiting for new orders... 🔥")
-    
-    # Grid for KDS Tickets
+        st.info("The kitchen is clear. Waiting for orders... 🔥")
+        return
+
+    # Grid layout for tickets
     cols = st.columns(3)
     for idx, order in enumerate(st.session_state.orders):
         with cols[idx % 3]:
-            st.markdown(f"""
-            <div class="kds-ticket">
-                <h4>ORDER #{order['id']}</h4>
-                <hr>
-                {'<br>'.join([f"• {i['name']}" for i in order['items']])}
-                <hr>
-                <strong>TIME: {order['time']}</strong>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button("BUMP", key=f"bump_{idx}"):
-                st.session_state.orders.pop(idx)
-                st.rerun()
+            with st.expander(f"ORDER #{order['id']} - {order['time']}", expanded=True):
+                for item in order['items']:
+                    st.write(f"• **{item['name']}**")
+                st.write("---")
+                if st.button(f"DONE (Order {order['id']})", key=f"bump_{order['id']}"):
+                    st.session_state.orders.pop(idx)
+                    st.rerun()
 
-def render_sidebar():
+# ==============================================================================
+# 6. MAIN EXECUTION (THE BOOTLOADER)
+# ==============================================================================
+def main():
+    SystemState.initialize()
+    apply_custom_styles()
+    
+    # Sidebar Control Panel
     with st.sidebar:
-        st.title("System Control")
-        st.session_state.view = st.radio("Access Level", ["Customer", "Kitchen (KDS)", "Admin"])
+        st.markdown(f"## System v{SYSTEM_CONFIG['version']}")
+        mode = st.radio("Access Level", ["Ordering App", "Staff (KDS)", "Admin Metrics"])
         
-        st.write("---")
-        if st.session_state.view == "Customer":
-            st.subheader("🛒 Current Cart")
+        if mode == "Ordering App":
+            st.write("---")
+            st.header("Your Cart 🛒")
             if not st.session_state.cart:
                 st.write("Your cart is empty.")
             else:
-                for item in st.session_state.cart:
-                    st.write(f"• {item['name']} (${item['price']})")
+                for idx, item in enumerate(st.session_state.cart):
+                    st.write(f"{item['name']} - ${item['price']:.2f}")
                 
-                total = sum([i['price'] for i in st.session_state.cart])
-                st.markdown(f"### Total: ${total:.2f}")
+                total = sum(i['price'] for i in st.session_state.cart)
+                st.markdown(f"### Total: **${total:.2f}**")
                 
-                if st.button("🚀 PLACE ORDER"):
-                    new_order = {
-                        "id": len(st.session_state.orders) + 101,
-                        "items": st.session_state.cart,
-                        "time": time.strftime("%H:%M:%S")
-                    }
-                    st.session_state.orders.append(new_order)
-                    st.session_state.points += int(total)
-                    st.session_state.cart = []
-                    LaReinaOS.play_sound()
-                    st.success("Order sent to kitchen!")
+                if st.button("SEND TO KITCHEN", type="primary"):
+                    SystemState.submit_order()
 
-# ==========================================
-# 6. MAIN EXECUTION (The Bootloader)
-# ==========================================
-def main():
-    LaReinaOS.init_state()
-    apply_enterprise_styles()
-    render_sidebar()
-
-    if st.session_state.view == "Customer":
-        render_customer_view()
-    elif st.session_state.view == "Kitchen (KDS)":
-        render_kds_view()
+    # Route to selected view
+    if mode == "Ordering App":
+        render_customer_ui()
+    elif mode == "Staff (KDS)":
+        render_kds_ui()
     else:
-        st.title("Admin Dashboard")
-        st.write("Detailed analytics and inventory management coming soon.")
+        st.title("Admin Data Lake")
+        st.write("Real-time revenue and behavioral tracking metrics under development.")
 
 if __name__ == "__main__":
     main()
