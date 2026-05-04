@@ -1,8 +1,5 @@
 import streamlit as st
 from streamlit_pills import pills
-import pandas as pd
-import time
-import datetime
 from streamlit_autorefresh import st_autorefresh
 import streamlit.components.v1 as components
 
@@ -11,11 +8,10 @@ import streamlit.components.v1 as components
 # ==========================================
 class SystemConfig:
     RESTAURANT_NAME = "La Reina"
-    VERSION = "2.0.4-PRO"
     PRIMARY_COLOR = "#FFD700"  # Gold
     ACCENT_COLOR = "#7FFF00"   # Poblano Green
     BG_COLOR = "#000000"       # Deep Black
-    LOGO_PATH = "logo.png"     # Case-sensitive file name
+    LOGO_PATH = "la_reina_dark.png"  # Hardwired for your specific asset
     REFRESH_RATE = 5000        # 5 Seconds for live order syncing
 
 st.set_page_config(
@@ -25,7 +21,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 2. ADVANCED CSS ENGINE (Industrial UX)
+# 2. ADVANCED CSS ENGINE (Bulletproof Styling)
 # ==========================================
 def inject_custom_styles():
     st.markdown(f"""
@@ -38,15 +34,7 @@ def inject_custom_styles():
             font-family: 'JetBrains Mono', monospace;
         }}
 
-        /* Header & Logo Container */
-        .header-container {{
-            display: flex;
-            justify-content: center;
-            padding: 20px 0;
-            border-bottom: 1px solid #222;
-        }}
-
-        /* The "Poblano" Status Bar */
+        /* The Minimalist "Poblano" Status Bar */
         .status-engine {{
             background: linear-gradient(90deg, #111, #222);
             border: 2px solid {SystemConfig.ACCENT_COLOR};
@@ -109,12 +97,19 @@ def inject_custom_styles():
             height: 50px !important;
             border-radius: 8px !important;
             transition: 0.2s;
+            font-weight: bold !important;
         }}
 
         .stButton>button:hover {{
             border-color: {SystemConfig.PRIMARY_COLOR} !important;
             color: {SystemConfig.PRIMARY_COLOR} !important;
             background: rgba(255, 215, 0, 0.1) !important;
+        }}
+
+        /* PILLS OVERRIDE: Fixing the TypeError from the library */
+        div[data-testid="stMarkdownContainer"] p {{
+            font-weight: bold;
+            font-size: 16px;
         }}
 
         /* Hide Streamlit Junk */
@@ -130,13 +125,8 @@ def inject_custom_styles():
 def initialize_session():
     if 'orders' not in st.session_state:
         st.session_state.orders = []
-    if 'metrics' not in st.session_state:
-        st.session_state.metrics = {"avg_prep_time": 0, "total_today": 0}
-    if 'last_update' not in st.session_state:
-        st.session_state.last_update = datetime.datetime.now()
 
 def load_master_menu():
-    # Structured as an enterprise JSON object for future database migration
     return {
         "Tacos": [
             {"id": "T1", "name": "Street Taco", "desc": "Cilantro, onion, lime, choice of protein", "price": 3.50},
@@ -156,18 +146,15 @@ def load_master_menu():
     }
 
 # ==========================================
-# 4. HARDWARE INTEGRATION: Audio & Key-Listening
+# 4. HARDWARE INTEGRATION (Spacebar Listener)
 # ==========================================
 def inject_hardware_listeners():
-    # Audio Alert & Spacebar Listener
     hardware_js = """
     <script>
     const doc = window.parent.document;
-    const audio = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3');
-    
     doc.addEventListener('keydown', function(e) {
-        if (e.keyCode === 32) { // Spacebar (Physical Bump Bar)
-            window.parent.postMessage({type: 'BUMP_ORDER'}, '*');
+        if (e.keyCode === 32) { // Spacebar Detection
+            console.log("HARDWARE BUMP DETECTED");
         }
     });
     </script>
@@ -182,37 +169,36 @@ def main():
     inject_custom_styles()
     inject_hardware_listeners()
     
-    # 5a. Global Logo Injection (Centering logic)
+    # 5a. Global Logo Injection
     _, logo_col, _ = st.columns([1, 2, 1])
     with logo_col:
         try:
             st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except:
-            st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>LA REINA</h1>", unsafe_allow_html=True)
+            # Fallback if the logo ever gets deleted or renamed
+            st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
 
-    # 5b. The Industrial Status Bar
+    # 5b. The Minimalist Status Bar
     st.markdown(f"""
         <div class="status-engine">
-            STATUS: POBLANO 🫑 | VERSION {SystemConfig.VERSION} | ENGINE LIVE
+            STATUS: POBLANO 🫑
         </div>
     """, unsafe_allow_html=True)
 
     # 5c. Multi-Category Navigation
     menu = load_master_menu()
-    selected_category = pills("", list(menu.keys()), index=0, 
-                              active_format="bold",
-                              colors={"active": "#FF4B4B", "inactive": "#222"})
+    selected_category = pills("Navigation", list(menu.keys()), index=0)
 
-    # 5d. Grid Engine (Dynamic Column Logic)
+    # 5d. Grid Engine
     if selected_category:
         items = menu[selected_category]
         if not items:
-            st.info("Rewards Portal initializing. Connect your La Reina membership card to continue.")
+            st.info("Rewards Engine Offline. Awaiting Database Link.")
         else:
             cols = st.columns(2)
             for idx, item in enumerate(items):
                 with cols[idx % 2]:
-                    # The Menu Card Component
+                    # Build Card
                     st.markdown(f"""
                         <div class="menu-card">
                             <div>
@@ -224,10 +210,10 @@ def main():
                     """, unsafe_allow_html=True)
                     
                     # Action Logic
-                    if st.button(f"SELECT {item['id']}", key=f"btn_{item['id']}"):
-                        st.toast(f"Adding {item['name']} to order...")
+                    if st.button(f"FIRE {item['id']}", key=f"btn_{item['id']}"):
+                        st.toast(f"{item['name']} sent to kitchen array.")
 
-    # 5e. Real-Time Logic (The "Sync" Engine)
+    # 5e. Real-Time Refresh Loop
     st_autorefresh(interval=SystemConfig.REFRESH_RATE, key="sync_engine")
 
 if __name__ == "__main__":
