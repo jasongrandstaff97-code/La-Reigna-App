@@ -1,257 +1,244 @@
 import streamlit as st
+from streamlit_pills import pills
+from streamlit_autorefresh import st_autorefresh
 import random
-import time
 from database_engine import SystemConfig, sync_user_data, update_user_points, log_transaction, get_sales_data
 
-# --- 1. SYSTEM INITIALIZATION ---
+# --- SYSTEM CONFIG ---
 st.set_page_config(
     page_title=f"{SystemConfig.RESTAURANT_NAME} POS",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-def inject_industrial_styles():
+def inject_custom_styles():
     st.markdown(f"""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
-        /* Core Dark Engine */
-        .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
-        [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
+        /* Core Aesthetic */
+        .stApp {{ background-color: {SystemConfig.BG_COLOR}; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         
-        /* The 6-Tab Mega-Pill Grid (2x3) */
+        /* THE STATUS ENGINE */
+        .status-engine {{ 
+            background: linear-gradient(90deg, #111, #222); 
+            border: 2px solid {SystemConfig.ACCENT_COLOR}; 
+            padding: 15px 20px; border-radius: 12px; margin: 20px 0; 
+            box-shadow: 0 0 15px rgba(127, 255, 0, 0.1); 
+        }}
+        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.ACCENT_COLOR}; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; font-size: 14px; }}
+        
+        /* THE 6-PILL GRID (Stretched Tiles) */
         .mega-grid {{
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 25px;
         }}
         
-        /* Industrial Pill Styling */
+        /* Re-styling stButton to be a "Mega-Pill" */
         .stButton>button {{
             width: 100%;
-            height: 75px !important;
-            border-radius: 12px !important;
+            height: 70px !important;
+            background-color: #111 !important;
             border: 2px solid #333 !important;
-            background-color: #1A1A1A !important;
-            color: #D4AF37 !important;
+            color: {SystemConfig.PRIMARY_COLOR} !important;
+            border-radius: 12px !important;
             font-weight: 800 !important;
-            text-transform: uppercase !important;
-            font-size: 1rem !important;
-            transition: all 0.2s ease-in-out;
+            text-transform: uppercase;
+            transition: 0.3s;
         }}
-        
-        .stButton>button:hover {{
-            border-color: #D4AF37 !important;
-            transform: scale(1.02);
-        }}
+        .stButton>button:hover {{ border-color: {SystemConfig.PRIMARY_COLOR} !important; transform: translateY(-2px); }}
 
-        /* Special Pill States */
+        /* Category Special States */
         .active-red > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
-        .active-reserva > div > button {{ background-color: #4A0404 !important; color: #D4AF37 !important; border: 2px solid #D4AF37 !important; }}
-        .locked-pill > div > button {{ opacity: 0.5 !important; color: #444 !important; }}
+        .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
 
-        /* Current Order Manifest */
-        .manifest-header {{ color: #D4AF37; font-weight: 800; font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: 10px; margin-top: 40px; text-transform: uppercase; }}
-        .manifest-row {{ display: flex; justify-content: space-between; padding: 10px 0; color: #AAA; font-size: 1.1rem; border-bottom: 1px solid #1A1A1A; }}
-        .manifest-total {{ border-top: 2px dashed #444; padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; font-size: 1.8rem; font-weight: 800; color: #D4AF37; }}
+        /* MENU CARDS */
+        .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; height: 180px; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 15px; }}
+        .item-title {{ color: {SystemConfig.PRIMARY_COLOR}; font-size: 20px; font-weight: 800; }}
+        .price-tag {{ color: {SystemConfig.PRIMARY_COLOR}; font-size: 22px; font-weight: 700; }}
+
+        /* CURRENT ORDER MANIFEST */
+        .manifest-container {{ background: #111; border: 1px solid #333; border-radius: 12px; padding: 25px; }}
+        .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px; text-transform: uppercase; }}
+        .manifest-total {{ border-top: 2px dashed #444; padding-top: 15px; margin-top: 15px; font-size: 24px; font-weight: bold; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
         
-        /* Payment Triggers */
-        .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000000 !important; border: none !important; height: 60px !important; }}
-        .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFFFFF !important; border: none !important; height: 60px !important; }}
+        /* EXPRESS PAYMENTS */
+        .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 55px !important; }}
+        .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 55px !important; }}
 
-        /* KDS Display Styles */
-        .kds-card {{ background-color: #111; border-left: 10px solid #D4AF37; padding: 25px; border-radius: 8px; margin-bottom: 25px; min-height: 250px; }}
-        .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
+        /* KDS STATION STYLES */
+        .kds-card {{ background-color: #080808; border-left: 8px solid {SystemConfig.PRIMARY_COLOR}; padding: 20px; border-radius: 8px; margin-bottom: 15px; }}
+        .kds-badge {{ padding: 4px 10px; border-radius: 4px; font-weight: 800; font-size: 12px; text-transform: uppercase; margin-bottom: 10px; display: inline-block; }}
         .kds-dine-in {{ background-color: #2E7D32; color: white; }}
         .kds-to-go {{ background-color: #D32F2F; color: white; }}
-        
-        /* Utility */
+
         footer {{visibility: hidden;}} #MainMenu {{visibility: hidden;}}
         </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATA LAYER ---
-def load_menu():
-    return {
-        "Lunch Specials": [
-            {"id": "L1", "name": "Speedy Gonzales", "desc": "One taco, one enchilada, choice of rice or beans.", "price": 7.99},
-            {"id": "L2", "name": "Lunch Fajitas", "desc": "Steak or Chicken, peppers, onions, rice, beans.", "price": 10.50}
-        ],
-        "Appetizers": [
-            {"id": "A1", "name": "Queso Blanco", "desc": "Creamy melted white cheese with jalapeño hints.", "price": 5.99},
-            {"id": "A2", "name": "Fresh Guacamole", "desc": "Avocado, lime, cilantro, tomatoes. Made daily.", "price": 7.50}
-        ],
-        "Tacos": [
-            {"id": "T1", "name": "Street Taco (Asada)", "desc": "Steak, cilantro, onion, lime on corn.", "price": 3.50},
-            {"id": "T2", "name": "Al Pastor", "desc": "Marinated pork, pineapple, cilantro, onion.", "price": 3.75}
-        ],
-        "Entrees": [
-            {"id": "E1", "name": "Burrito California", "desc": "Steak, fries, cheese, guac, sour cream inside.", "price": 14.50},
-            {"id": "E2", "name": "Carne Asada", "desc": "Grilled steak, grilled onions, rice, beans.", "price": 17.50}
-        ],
-        "Drinks": [
-            {"id": "D1", "name": "La Reina House Rita", "desc": "Gold tequila, fresh lime, agave.", "price": 8.99},
-            {"id": "D2", "name": "Modelo Especial", "desc": "Draft or Bottle. Chilled with lime.", "price": 5.00}
-        ],
-        "La Reserva": [
-            {"id": "R1", "name": "Wagyu Birria Tacos", "desc": "Elite Wagyu beef, consome, Oaxacan cheese.", "price": 24.00},
-            {"id": "R2", "name": "Premium Reposado Flight", "desc": "Three rare tequilas, hand-selected.", "price": 35.00}
-        ]
-    }
-
-# --- 3. STATE & ROUTING ---
+# --- 2. LOGIC INITIALIZATION ---
 def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'cart' not in st.session_state: st.session_state.cart = []
     if 'current_cat' not in st.session_state: st.session_state.current_cat = "Lunch Specials"
-    if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
-# --- 4. THE PORTAL (FIBONACCI LOGIN) ---
+def get_tier_info(pts):
+    if pts < 500: return "POBLANO 🫑", 500, "JALAPEÑO 🌶️", "#7FFF00"
+    elif pts < 5000: return "JALAPEÑO 🌶️", 5000, "HABANERO 🔥", "#FFA500"
+    else: return "HABANERO 🔥", 10000, "EL REY 👑", "#D4AF37"
+
+# --- 3. THE PORTAL (FIBONACCI ACCESS) ---
 def render_login():
     _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        phone = st.text_input("PHONE", placeholder="000-000-0000", label_visibility="collapsed")
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
         
-        if phone:
-            # The Fibonacci Sequence (First 10 digits)
-            if phone == "0112358132":
+        st.markdown("<h4 style='text-align:center; color:#888; letter-spacing: 2px;'>IDENTITY VERIFICATION</h4>", unsafe_allow_html=True)
+        phone_input = st.text_input("PHONE", placeholder="10-DIGIT SEQUENCE", label_visibility="collapsed")
+        
+        if phone_input:
+            # 0, 1, 1, 2, 3, 5, 8, 13, 21 -> 0112358132
+            if phone_input == "0112358132":
                 st.session_state.view_mode = "kds"
                 st.rerun()
-            elif len(phone) >= 10:
-                sync_user_data(phone)
+            elif len(phone_input) >= 10:
+                sync_user_data(phone_input)
                 st.session_state.view_mode = "customer"
-                st.session_state.phone_number = phone
+                st.session_state.phone_number = phone_input
                 st.rerun()
 
-# --- 5. THE CUSTOMER CONCIERGE ---
-def render_customer_ui():
-    # A. Loyalty Dashboard
+# --- 4. THE CUSTOMER CONCIERGE ---
+def render_customer_os():
+    # Centered Logo
+    _, logo_col, _ = st.columns([1, 2, 1])
+    with logo_col: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+
+    # Status Engine (Points Bar)
     pts = st.session_state.reward_points
-    if pts < 500: tier, color, target, nxt = "POBLANO 🫑", "#7FFF00", 500, "JALAPEÑO"
-    elif pts < 5000: tier, color, target, nxt = "JALAPEÑO 🌶️", "#FFA500", 5000, "HABANERO"
-    else: tier, color, target, nxt = "HABANERO 🔥", "#D4AF37", 10000, "MAX HEAT"
-    
-    progress = min(int((pts/target)*100), 100)
-    
+    tier, target, next_t, t_color = get_tier_info(pts)
+    progress = min(int((pts / target) * 100), 100)
+
     st.markdown(f"""
-        <div style="border: 2px solid {color}; padding: 15px; border-radius: 10px; margin-bottom: 25px;">
-            <div style="display: flex; justify-content: space-between; font-weight: 800; color: {color}; text-transform: uppercase;">
-                <span>{tier}</span><span>{pts} / {target} PTS</span>
+        <div class="status-engine" style="border-color: {t_color};">
+            <div class="status-header">
+                <span style="color: {t_color};">TIER: {tier}</span>
+                <span style="color: #fff;">CART: {len(st.session_state.cart)} ITEMS</span>
+                <span>ID: {st.session_state.phone_number}</span>
             </div>
-            <div style="width: 100%; background: #222; height: 6px; border-radius: 3px; margin: 8px 0;">
-                <div style="width: {progress}%; background: {color}; height: 100%; border-radius: 3px;"></div>
+            <div style="width: 100%; background: #222; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid #333;">
+                <div style="width: {progress}%; background: {t_color}; height: 100%; box-shadow: 0 0 10px {t_color};"></div>
+            </div>
+            <div style="text-align: right; color: #888; font-size: 11px; font-weight: bold; margin-top: 5px;">
+                {pts} / {target} PTS — <span style="color: {t_color};">{target - pts} PTS TO {next_t}</span>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # B. The 6-Tab Mega-Pill Grid
-    categories = list(load_menu().keys())
-    cols = st.columns(2)
+    # THE 6-TAB MEGA-GRID
+    menu_data = {
+        "Lunch Specials": "active-red",
+        "Appetizers": "",
+        "Tacos": "",
+        "Entrees": "",
+        "Drinks": "",
+        "La Reserva": "active-reserva"
+    }
     
+    t1, t2 = st.columns(2)
+    categories = list(menu_data.keys())
+    
+    # Render the 2x3 grid
     for i, cat in enumerate(categories):
-        with cols[i % 2]:
-            c_style = ""
-            if cat == st.session_state.current_cat: c_style = "active-red"
-            if cat == "La Reserva":
-                if pts < 5000:
-                    st.markdown('<div class="locked-pill">', unsafe_allow_html=True)
-                    st.button(f"🔒 {cat}", disabled=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    continue
-                c_style = "active-reserva"
-            
-            st.markdown(f'<div class="{c_style}">', unsafe_allow_html=True)
-            if st.button(cat, key=f"tab_{cat}"):
-                st.session_state.current_cat = cat
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+        target_col = t1 if i % 2 == 0 else t2
+        with target_col:
+            style_class = menu_data[cat] if cat == st.session_state.current_cat or cat == "La Reserva" else ""
+            if cat == "La Reserva" and pts < 5000:
+                st.button(f"🔒 {cat}", disabled=True)
+            else:
+                st.markdown(f'<div class="{style_class}">', unsafe_allow_html=True)
+                if st.button(cat, key=f"btn_{cat}"):
+                    st.session_state.current_cat = cat
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    # C. Item Catalog
-    st.markdown(f"## {st.session_state.current_cat.upper()}")
-    items = load_menu()[st.session_state.current_cat]
-    i_cols = st.columns(2)
-    for idx, item in enumerate(items):
-        with i_cols[idx % 2]:
-            st.markdown(f"""
-                <div style="background: #111; padding: 20px; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; min-height: 120px;">
-                    <div style="color: #D4AF37; font-weight: 800; font-size: 1.2rem;">{item['name']}</div>
-                    <div style="color: #666; font-size: 0.9rem;">{item['desc']}</div>
-                    <div style="color: #FFF; font-weight: 700; margin-top: 10px;">${item['price']:.2f}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}"):
-                st.session_state.cart.append(item)
-                st.toast(f"Added {item['name']}")
+    # THE CATALOG
+    st.markdown(f"<h2 style='color:{SystemConfig.PRIMARY_COLOR};'>{st.session_state.current_cat.upper()}</h2>", unsafe_allow_html=True)
+    # (Note: In production, pull this from your master_menu dictionary)
+    m1, m2 = st.columns(2)
+    with m1:
+        st.markdown(f"""<div class="menu-card"><div><div class="item-title">Speedy Gonzales</div><div class="item-meta">One taco, one enchilada, choice of rice or beans.</div></div><div class="price-tag">$7.99</div></div>""", unsafe_allow_html=True)
+        if st.button("+ ADD SPEEDY GONZALES"):
+            st.session_state.cart.append({"name": "Speedy Gonzales", "price": 7.99})
+            st.rerun()
 
-    # D. CURRENT ORDER (CHECKOUT)
+    # THE CURRENT ORDER (CHECKOUT SECTION)
+    st.markdown('<div class="manifest-container">', unsafe_allow_html=True)
     st.markdown('<div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
+    
     if not st.session_state.cart:
-        st.write("MANIFEST EMPTY.")
+        st.write("NO ITEMS SELECTED.")
     else:
-        subtotal = 0
+        subtotal = sum(item['price'] for item in st.session_state.cart)
         for item in st.session_state.cart:
-            st.markdown(f'<div class="manifest-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
-            subtotal += item["price"]
+            st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
         
         st.markdown(f'<div class="manifest-total"><span>TOTAL</span><span>${subtotal:.2f}</span></div>', unsafe_allow_html=True)
         
-        st.write("ORDER DESTINATION")
-        st.session_state.order_type = st.radio("DEST", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
-
-        # Payment Triggers
+        # Payment Integration
         st.markdown("<br>", unsafe_allow_html=True)
-        pay_col1, pay_col2 = st.columns(2)
-        with pay_col1: 
+        p1, p2 = st.columns(2)
+        with p1: 
             st.markdown('<div class="apple-pay-btn">', unsafe_allow_html=True)
-            if st.button(" Pay", key="ap"): pass
+            st.button(" Pay", key="apple")
             st.markdown('</div>', unsafe_allow_html=True)
-        with pay_col2:
+        with p2:
             st.markdown('<div class="google-pay-btn">', unsafe_allow_html=True)
-            if st.button("G Pay", key="gp"): pass
+            st.button("G Pay", key="google")
             st.markdown('</div>', unsafe_allow_html=True)
         
         if st.button("SECURE CHECKOUT (MFA)", use_container_width=True):
-            st.success("MFA CHALLENGE SENT.")
+            st.success("Identity Challenge Sent.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. THE KDS MANIFEST ---
+# --- 5. THE KITCHEN DATA SCREEN (KDS) ---
 def render_kds():
-    st.markdown("<h1 style='color:#D4AF37;'>👨‍🍳 KDS COMMAND CENTER</h1>", unsafe_allow_html=True)
-    st.markdown("---")
-    k_cols = st.columns(3)
-    # Mock data for demonstration
-    mock_orders = [
-        {"id": "501", "type": "DINE-IN 🍽️", "items": ["2x Street Tacos", "1x Queso Blanco"]},
-        {"id": "502", "type": "TO-GO 🛍️", "items": ["1x Burrito California", "1x Large Rita"]}
-    ]
+    st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>👨‍🍳 KITCHEN DATA SCREEN</h1>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#333;'>", unsafe_allow_html=True)
+    
+    k1, k2, k3 = st.columns(3)
+    # Placeholder for live DB orders
+    mock_orders = [{"id": "901", "type": "TO-GO 🛍️", "items": ["3x Street Tacos", "1x Queso"]}, {"id": "902", "type": "DINE-IN 🍽️", "items": ["1x Fajitas", "2x Ritas"]}]
+    
     for i, order in enumerate(mock_orders):
-        with k_cols[i % 3]:
-            badge_class = "kds-dine-in" if "DINE-IN" in order["type"] else "kds-to-go"
+        target_k = [k1, k2, k3][i % 3]
+        with target_k:
+            b_class = "kds-dine-in" if "DINE-IN" in order["type"] else "kds-to-go"
             st.markdown(f"""
                 <div class="kds-card">
-                    <div class="kds-badge {badge_class}">{order['type']}</div>
-                    <div style="font-size: 1.8rem; font-weight: 800; color: #D4AF37; margin-bottom: 10px;">ORDER #{order['id']}</div>
-                    <div style="font-size: 1.3rem; color: #FFF; line-height: 1.6;">
+                    <div class="kds-badge {b_class}">{order['type']}</div>
+                    <div style="font-size: 1.8rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR};">#{order['id']}</div>
+                    <div style="margin: 15px 0; font-size: 1.2rem; color: #ccc;">
                         {'<br>'.join(order['items'])}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
-            if st.button("MARK COMPLETE", key=f"comp_{order['id']}"):
-                st.toast(f"Order #{order['id']} Cleared.")
+            if st.button("COMPLETE", key=f"kds_{order['id']}"):
+                st.toast(f"Order {order['id']} Cleared.")
 
-# --- 7. RUNTIME ---
+# --- RUNTIME ---
 def main():
     init_session()
-    inject_industrial_styles()
-    
+    inject_custom_styles()
     if st.session_state.view_mode == "login":
         render_login()
     elif st.session_state.view_mode == "kds":
         render_kds()
-    elif st.session_state.view_mode == "customer":
-        render_customer_ui()
+    else:
+        render_main_os() # Logic to switch between render_customer_os and admin
 
 if __name__ == "__main__":
     main()
