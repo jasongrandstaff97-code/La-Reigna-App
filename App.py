@@ -77,7 +77,7 @@ def bump_kitchen_ticket(order_id):
         with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. SYSTEM CONFIG & STYLES
+# 2. SYSTEM CONFIG & STYLES (WITH MOBILE GRID PATCH)
 # ==========================================
 st.set_page_config(
     page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
@@ -96,12 +96,31 @@ def inject_styles():
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
-        .stButton>button {{ width: 100%; height: 75px !important; background-color: #111 !important; border: 2px solid #333 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border-radius: 12px !important; font-weight: 800 !important; text-transform: uppercase; transition: 0.2s; }}
+        .stButton>button {{ width: 100%; height: 75px !important; background-color: #111 !important; border: 2px solid #333 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border-radius: 12px !important; font-weight: 800 !important; text-transform: uppercase; transition: 0.2s; font-size: 14px !important; }}
         .stButton>button:hover {{ border-color: {SystemConfig.PRIMARY_COLOR} !important; background: #1a1a1a !important; transform: translateY(-2px); }}
         
         .active-tab > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
         .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
+        /* THE MOBILE GRID OVERRIDE */
+        @media (max-width: 768px) {{
+            [data-testid="stHorizontalBlock"] {{
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 8px !important;
+            }}
+            [data-testid="column"] {{
+                width: 33% !important;
+                flex: 1 1 33% !important;
+                min-width: 30% !important;
+            }}
+            .stButton>button {{
+                font-size: 11px !important;
+                padding: 4px !important;
+                height: 60px !important;
+            }}
+        }}
+
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
@@ -130,23 +149,19 @@ def inject_styles():
         </style>
     """, unsafe_allow_html=True)
 
-# THE NEW JAVASCRIPT INJECTOR FOR THE KDS BUMP BAR
 def inject_kds_keyboard_hack():
     components.html(
         """
         <script>
         const doc = window.parent.document;
-        // Check if we already injected this so we don't duplicate it
         if (!doc.getElementById('kds-spacebar-hack')) {
             const script = doc.createElement('script');
             script.id = 'kds-spacebar-hack';
             script.innerHTML = `
                 document.addEventListener('keydown', function(e) {
-                    // Ignore spacebar if user is typing in a text input
                     if (e.target.tagName.toLowerCase() === 'input') return;
-                    
                     if (e.code === 'Space' || e.key === ' ') {
-                        e.preventDefault(); // <-- STOPS THE SCREEN FROM SCROLLING DOWN
+                        e.preventDefault(); 
                         const bumpBtn = document.querySelector('button[kind="primary"]');
                         if (bumpBtn) {
                             bumpBtn.click();
@@ -156,7 +171,6 @@ def inject_kds_keyboard_hack():
             `;
             doc.head.appendChild(script);
         }
-        // Force the browser window to focus so it catches the keystrokes immediately
         window.parent.focus();
         </script>
         """,
@@ -164,13 +178,13 @@ def inject_kds_keyboard_hack():
     )
 
 # ==========================================
-# 3. MENU DATA & STATE LOGIC
+# 3. MENU DATA & STATE LOGIC (9 CATEGORIES)
 # ==========================================
 def get_master_menu():
     return {
-        "Lunch Specials": [
-            {"id": "L1", "name": "Speedy Gonzales", "desc": "One taco, one enchilada, choice of rice or beans.", "price": 7.99},
-            {"id": "L2", "name": "Lunch Fajitas", "desc": "Steak or Chicken, peppers, onions, rice, beans.", "price": 10.50}
+        "Specials": [
+            {"id": "SP1", "name": "Birria Pizza", "desc": "10-inch flour tortilla stacked with birria, cheese, onion.", "price": 18.00},
+            {"id": "SP2", "name": "Molcajete", "desc": "Volcanic rock bowl with steak, chicken, shrimp, salsa.", "price": 26.00}
         ],
         "Appetizers": [
             {"id": "A1", "name": "Queso Blanco", "desc": "Creamy melted white cheese dip with jalapeño hints.", "price": 5.99},
@@ -188,6 +202,18 @@ def get_master_menu():
             {"id": "D1", "name": "La Reina Rita", "desc": "House gold tequila, fresh lime, agave. Rocks or Frozen.", "price": 8.99},
             {"id": "D2", "name": "Modelo Especial", "desc": "Draft or Bottle. Served chilled with a lime.", "price": 5.00}
         ],
+        "Sides": [
+            {"id": "S1", "name": "Street Corn", "desc": "Elote off the cob, mayo, cotija, tajin.", "price": 4.50},
+            {"id": "S2", "name": "Rice & Beans", "desc": "House-made Mexican rice and refried beans.", "price": 3.99}
+        ],
+        "Desserts": [
+            {"id": "DS1", "name": "Golden Churros", "desc": "Crispy churros tossed in cinnamon sugar.", "price": 6.50},
+            {"id": "DS2", "name": "Tres Leches", "desc": "Classic sponge cake soaked in three milks.", "price": 7.00}
+        ],
+        "Lunch Setup": [
+            {"id": "L1", "name": "Speedy Gonzales", "desc": "One taco, one enchilada, choice of rice or beans.", "price": 7.99},
+            {"id": "L2", "name": "Lunch Fajitas", "desc": "Steak or Chicken, peppers, onions, rice, beans.", "price": 10.50}
+        ],
         "La Reserva": [
             {"id": "R1", "name": "Wagyu Birria Tacos", "desc": "Elite Wagyu beef, consome, Oaxacan cheese.", "price": 24.00},
             {"id": "R2", "name": "The Queen's Flight", "desc": "Three rare aged reposados, hand-selected.", "price": 35.00}
@@ -202,7 +228,7 @@ def get_tier_info(pts):
 def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'cart' not in st.session_state: st.session_state.cart = []
-    if 'current_cat' not in st.session_state: st.session_state.current_cat = "Lunch Specials"
+    if 'current_cat' not in st.session_state: st.session_state.current_cat = "Specials"
     if 'is_admin' not in st.session_state: st.session_state.is_admin = False
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
@@ -269,29 +295,33 @@ def render_customer_os():
     """, unsafe_allow_html=True)
 
     menu = get_master_menu()
-    t1, t2 = st.columns(2)
+    categories = list(menu.keys())
     
-    for i, cat in enumerate(list(menu.keys())):
-        with (t1 if i % 2 == 0 else t2):
+    # 3x3 COLUMN INJECTION
+    cols = st.columns(3)
+    for i, cat in enumerate(categories):
+        with cols[i % 3]:
             style_class = "active-tab" if cat == st.session_state.current_cat else ""
             if cat == "La Reserva":
                 if pts < 5000:
-                    st.button(f"🔒 {cat}", disabled=True)
+                    st.button(f"🔒 {cat}", disabled=True, use_container_width=True)
                     continue
                 style_class = "active-reserva" if cat == st.session_state.current_cat else ""
             
             st.markdown(f'<div class="{style_class}">', unsafe_allow_html=True)
-            if st.button(cat, key=f"tab_{cat}"):
+            if st.button(cat, key=f"tab_{cat}", use_container_width=True):
                 st.session_state.current_cat = cat
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
-    cols = st.columns(2)
+    
+    # Items still render in 2 columns for readability
+    item_cols = st.columns(2)
     for idx, item in enumerate(menu[st.session_state.current_cat]):
-        with cols[idx % 2]:
+        with item_cols[idx % 2]:
             st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-            if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}"):
+            if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
                 st.session_state.cart.append(item)
                 st.toast(f"Added {item['name']}")
                 st.rerun()
@@ -316,18 +346,17 @@ def render_customer_os():
         p1, p2 = st.columns(2)
         with p1: 
             st.markdown('<div class="apple-pay-btn">', unsafe_allow_html=True)
-            if st.button(" Pay", key="ap_pay"): process_order("Apple Pay", total)
+            if st.button(" Pay", key="ap_pay", use_container_width=True): process_order("Apple Pay", total)
             st.markdown('</div>', unsafe_allow_html=True)
         with p2:
             st.markdown('<div class="google-pay-btn">', unsafe_allow_html=True)
-            if st.button("G Pay", key="gp_pay"): process_order("Google Pay", total)
+            if st.button("G Pay", key="gp_pay", use_container_width=True): process_order("Google Pay", total)
             st.markdown('</div>', unsafe_allow_html=True)
         
         if st.button("CREDIT / DEBIT (MFA SECURED)", use_container_width=True): process_order("Saved Card", total)
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_kds():
-    # Deploy the invisible Javascript Hack
     inject_kds_keyboard_hack()
 
     _, logo_col, _ = st.columns([1, 1, 1])
