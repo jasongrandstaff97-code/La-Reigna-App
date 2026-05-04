@@ -1,288 +1,217 @@
 import streamlit as st
 from streamlit_pills import pills
 import time
-import uuid
-from datetime import datetime
+import base64
 
 # ==============================================================================
-# 1. GLOBAL CONFIGURATION & BRANDING (THE "MOAT")
+# 1. CORE SYSTEM ARCHITECTURE (The Scaling Engine)
 # ==============================================================================
-# This section defines the entire visual identity. 
-# Changing this dictionary allows you to clone the OS for any new client.
-SYSTEM_CONFIG = {
-    "app_name": "La Reina Margaritas",
-    "version": "3.0.4-PRO",
-    "branding": {
-        "gold": "#D4AF37",
-        "poblano": "#4CBB17",
-        "black": "#000000",
-        "card_bg": "#121212",
-        "text_main": "#FFFFFF",
-        "text_dim": "#888888"
-    },
-    "paths": {
-        "logo": "logo.png"  # Ensure this file is in your GitHub folder
-    }
-}
-
-# ==============================================================================
-# 2. MASTER MENU INFRASTRUCTURE
-# ==============================================================================
-# A robust data structure that maps categories to specific product objects.
-MENU_DB = {
+# This dictionary is the "Source of Truth." Every key here becomes a Pill Tab.
+MENU_DATABASE = {
     "Tacos": [
-        {"id": "t1", "name": "Street Taco", "desc": "Fresh cilantro, onion, lime", "price": 3.50, "icon": "🌮"},
-        {"id": "t2", "name": "Al Pastor", "desc": "Marinated pork, pineapple, spice", "price": 4.00, "icon": "🍍"},
-        {"id": "t3", "name": "Barbacoa", "desc": "Slow-braised beef, tender & juicy", "price": 4.50, "icon": "🥩"},
-        {"id": "t4", "name": "Carnitas", "desc": "Crispy pork, pickled onion", "price": 4.00, "icon": "🐷"}
+        {"name": "Street Taco", "desc": "Cilantro, onion, lime, choice of protein", "price": 3.50, "feat": "Popular"},
+        {"name": "Al Pastor", "desc": "Marinated pork, pineapple, spicy salsa", "price": 4.00, "feat": "Classic"},
+        {"name": "Barbacoa", "desc": "Slow-braised beef, tender & rich", "price": 4.50, "feat": ""},
+        {"name": "Carnitas", "desc": "Crispy shredded pork, pickled red onions", "price": 4.00, "feat": ""}
     ],
     "Entrees": [
-        {"id": "e1", "name": "Enchiladas Verdes", "desc": "3 chicken enchiladas, salsa verde", "price": 14.00, "icon": "🥘"},
-        {"id": "e2", "name": "Burrito Grande", "desc": "Rice, beans, protein, smothered in queso", "price": 12.00, "icon": "🌯"},
-        {"id": "e3", "name": "Fajita Platter", "desc": "Sizzling steak or chicken, peppers", "price": 18.00, "icon": "🔥"},
-        {"id": "e4", "name": "Chimichanga", "desc": "Deep-fried burrito, cheese sauce", "price": 13.50, "icon": "📦"}
+        {"name": "Enchiladas Verdes", "desc": "3 chicken enchiladas, salsa verde, queso fresco", "price": 14.00, "feat": "Best Seller"},
+        {"name": "Burrito Grande", "desc": "Rice, beans, protein, smothered in house queso", "price": 12.00, "feat": ""},
+        {"name": "Fajita Platter", "desc": "Sizzling steak or chicken, peppers, onions", "price": 18.00, "feat": ""},
+        {"name": "Chimichanga", "desc": "Deep-fried burrito, cheese sauce, pico de gallo", "price": 13.50, "feat": ""}
     ],
     "Appetizers": [
-        {"id": "a1", "name": "Guacamole & Chips", "desc": "Hand-smashed daily", "price": 8.00, "icon": "🥑"},
-        {"id": "a2", "name": "Queso Fundido", "desc": "Melted cheese with spicy chorizo", "price": 9.00, "icon": "🧀"},
-        {"id": "a3", "name": "Street Corn", "desc": "Elote with cotija and tajin", "price": 6.00, "icon": "🌽"}
+        {"name": "Guacamole & Chips", "desc": "Hand-smashed daily with fresh lime", "price": 8.00, "feat": ""},
+        {"name": "Queso Fundido", "desc": "Melted cheese blend with spicy chorizo", "price": 9.00, "feat": "Chef's Pick"},
+        {"name": "Street Corn", "desc": "Elote with cotija, tajin, and lime crema", "price": 6.00, "feat": ""},
+        {"name": "Nachos Supremos", "desc": "Queso, jalapeños, beans, pico, sour cream", "price": 11.00, "feat": ""}
     ],
     "Drinks": [
-        {"id": "d1", "name": "House Margarita", "desc": "Gold tequila, fresh lime, agave", "price": 9.00, "icon": "🍹"},
-        {"id": "d2", "name": "Paloma", "desc": "Grapefruit, lime, tequila, soda", "price": 10.00, "icon": "🍊"},
-        {"id": "d3", "name": "Agua Fresca", "desc": "Watermelon or Pineapple fresh", "price": 4.00, "icon": "🥤"},
-        {"id": "d4", "name": "Jarritos", "desc": "Mexican soda, various flavors", "price": 3.00, "icon": "🍾"}
+        {"name": "House Margarita", "desc": "Gold tequila, fresh lime, organic agave", "price": 9.00, "feat": "Signature"},
+        {"name": "Paloma", "desc": "Grapefruit, lime, tequila, soda splash", "price": 10.00, "feat": ""},
+        {"name": "Agua Fresca", "desc": "Watermelon, Pineapple, or Horchata", "price": 4.00, "feat": ""},
+        {"name": "Jarritos", "desc": "Mexican soda: Mango, Lime, or Mandarina", "price": 3.00, "feat": ""}
+    ],
+    "Desserts": [
+        {"name": "Churros", "desc": "Cinnamon sugar with Mexican chocolate dip", "price": 7.00, "feat": ""},
+        {"name": "Tres Leches", "desc": "Classic soaked sponge cake with cream", "price": 8.00, "feat": ""},
+        {"name": "Flan", "desc": "Traditional caramel custard", "price": 6.00, "feat": ""}
     ]
 }
 
 # ==============================================================================
-# 3. ADVANCED STYLING (THE PSYCHOLOGICAL UI)
+# 2. BRANDING & BEHAVIORAL UI (The Moat)
 # ==============================================================================
-def apply_custom_styles():
+st.set_page_config(page_title="La Reina OS", layout="wide")
+
+def apply_branding():
     st.markdown(f"""
         <style>
-        /* Base Environment */
+        /* Dark Mode Ergonomics */
         .stApp {{
-            background-color: {SYSTEM_CONFIG['branding']['black']};
-            color: {SYSTEM_CONFIG['branding']['text_main']};
+            background-color: #000000;
+            color: #FFFFFF;
         }}
         
-        /* The "Poblano" Status Bar */
-        .status-bar {{
-            background-color: {SYSTEM_CONFIG['branding']['poblano']};
+        /* The Poblano Pulse - Operational Status */
+        .status-header {{
+            background-color: #4CBB17;
             color: black;
             padding: 10px;
             text-align: center;
             font-weight: 900;
-            border-radius: 6px;
-            margin-bottom: 25px;
-            letter-spacing: 1px;
-            box-shadow: 0px 4px 15px rgba(76, 187, 23, 0.3);
+            border-radius: 4px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            box-shadow: 0px 4px 10px rgba(76,187,23,0.3);
         }}
 
         /* Mega-Pill Menu Cards */
-        .menu-card {{
-            background-color: {SYSTEM_CONFIG['branding']['card_bg']};
-            border: 1px solid #333333;
-            border-radius: 16px;
+        .menu-item {{
+            background-color: #111111;
+            border: 1px solid #333;
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
-            transition: all 0.3s ease;
+            transition: border 0.3s;
         }}
-        .menu-card:hover {{
-            border-color: {SYSTEM_CONFIG['branding']['gold']};
-            transform: translateY(-3px);
+        .menu-item:hover {{
+            border-color: #D4AF37;
         }}
-
-        /* Gold Branding Elements */
-        h1, h2, h3 {{
-            color: {SYSTEM_CONFIG['branding']['gold']} !important;
+        
+        .item-name {{
+            color: #D4AF37;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
         }}
+        
         .price-text {{
-            color: {SYSTEM_CONFIG['branding']['gold']};
-            font-size: 1.4rem;
+            color: #D4AF37;
+            font-family: 'monospace';
+            font-size: 1.3rem;
             font-weight: bold;
         }}
         
-        /* Sidebar Cart Styling */
-        [data-testid="stSidebar"] {{
-            background-color: #0A0A0A;
-            border-left: 1px solid #222;
-        }}
-        
-        /* Buttons */
-        .stButton>button {{
-            background-color: {SYSTEM_CONFIG['branding']['gold']};
-            color: black !important;
-            border-radius: 8px;
-            font-weight: bold;
-            border: none;
-            width: 100%;
+        /* Pills Customization */
+        .stPills {{
+            padding: 10px 0px;
         }}
         </style>
     """, unsafe_allow_html=True)
 
 # ==============================================================================
-# 4. SYSTEM STATE & LOGIC ENGINE
+# 3. SYSTEM UTILITIES
 # ==============================================================================
-class SystemState:
+class OSBrain:
     @staticmethod
     def initialize():
         if 'cart' not in st.session_state: st.session_state.cart = []
-        if 'orders' not in st.session_state: st.session_state.orders = []
         if 'phone' not in st.session_state: st.session_state.phone = None
-        if 'view' not in st.session_state: st.session_state.view = "Customer"
         if 'points' not in st.session_state: st.session_state.points = 0
+        if 'order_history' not in st.session_state: st.session_state.order_history = []
 
     @staticmethod
-    def add_to_cart(item):
+    def add_item(item):
         st.session_state.cart.append(item)
-        st.toast(f"Added {item['name']} 🌮")
+        st.toast(f"Added {item['name']}! 🌮")
 
-    @staticmethod
-    def submit_order():
+# ==============================================================================
+# 4. MODULAR UI COMPONENTS
+# ==============================================================================
+
+def render_header():
+    # DIRECT LOGO LOGIC
+    # Replace this URL with your raw GitHub logo link or local path
+    LOGO_URL = "https://raw.githubusercontent.com/jason-grandstaff/logo-repo/main/logo.png"
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        try:
+            st.image(LOGO_URL, width=350)
+        except:
+            st.markdown("<h1 style='text-align:center; color:#D4AF37; font-size:4rem;'>LA REINA</h1>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align:center; margin-top:-20px;'>AUTHENTIC MEXICAN KITCHEN & CANTINA</p>", unsafe_allow_html=True)
+    
+    st.markdown('<div class="status-header">STATUS: POBLANO 🫑 LIVE ENGINE</div>', unsafe_allow_html=True)
+
+def render_rewards_center():
+    st.markdown("## 👑 The Kingdom Rewards")
+    st.write("Enter your number to track points and unlock free items.")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        num = st.text_input("Mobile Number", placeholder="417-XXX-XXXX", 
+                            value=st.session_state.phone if st.session_state.phone else "")
+        if st.button("Sync Account", use_container_width=True):
+            st.session_state.phone = num
+            st.success("Account Synced.")
+            st.balloons()
+    
+    with c2:
+        if st.session_state.phone:
+            st.metric("Your Points", f"{st.session_state.points} PTS")
+            st.progress(min(st.session_state.points / 100, 1.0))
+            st.caption("100 Points = 1 Free Specialty Margarita")
+
+def render_menu_engine(category):
+    items = MENU_DATABASE.get(category, [])
+    
+    # Render 2 items per row for professional "Grid" feel
+    for i in range(0, len(items), 2):
+        row = st.columns(2)
+        for idx, col in enumerate(row):
+            if i + idx < len(items):
+                item = items[i+idx]
+                with col:
+                    st.markdown(f"""
+                        <div class="menu-item">
+                            <div class="item-name">{item['name']}</div>
+                            <div style="color:#888; margin-bottom:10px;">{item['desc']}</div>
+                            <div class="price-text">${item['price']:.2f}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Add {item['name']}", key=f"btn_{item['name']}"):
+                        OSBrain.add_item(item)
+
+# ==============================================================================
+# 5. MAIN EXECUTION (The Bootloader)
+# ==============================================================================
+def main():
+    OSBrain.initialize()
+    apply_branding()
+    
+    # Sidebar: The "Command Center"
+    with st.sidebar:
+        st.title("🛒 Your Order")
         if not st.session_state.cart:
-            return
-        order_id = str(uuid.uuid4())[:5].upper()
-        new_order = {
-            "id": order_id,
-            "items": st.session_state.cart,
-            "time": datetime.now().strftime("%H:%M:%S"),
-            "phone": st.session_state.phone
-        }
-        st.session_state.orders.append(new_order)
-        # Point Calculation: $1 = 1pt
-        subtotal = sum(item['price'] for item in st.session_state.cart)
-        st.session_state.points += int(subtotal)
-        st.session_state.cart = []
-        # Sound trigger placeholder
-        st.success(f"Order #{order_id} sent to kitchen!")
-        st.balloons()
+            st.write("Cart is empty.")
+        else:
+            for i in st.session_state.cart:
+                st.write(f"• {i['name']} (${i['price']:.2f})")
+            
+            total = sum(item['price'] for item in st.session_state.cart)
+            st.markdown(f"### Total: **${total:.2f}**")
+            
+            if st.button("PLACE ORDER 🚀", use_container_width=True):
+                st.session_state.points += int(total)
+                st.session_state.cart = []
+                st.success("Sent to Kitchen!")
 
-# ==============================================================================
-# 5. UI COMPONENTS (MODULAR VIEWS)
-# ==============================================================================
-
-def render_branding_header():
-    try:
-        st.image(SYSTEM_CONFIG["paths"]["logo"], width=300)
-    except:
-        st.markdown(f"<h1>{SYSTEM_CONFIG['app_name']}</h1>", unsafe_allow_html=True)
-        st.caption("AUTHENTIC MEXICAN KITCHEN & CANTINA")
+    # Main Screen Logic
+    render_header()
     
-    st.markdown('<div class="status-bar">STATUS: POBLANO 🫑 ONLINE</div>', unsafe_allow_html=True)
-
-def render_customer_ui():
-    render_branding_header()
-    
-    # Navigation Switchboard
-    tabs = list(MENU_DB.keys()) + ["Rewards 👑"]
-    selected = pills("", tabs, index=0, label_visibility="collapsed")
+    # DYNAMIC PILL GENERATION
+    # This automatically includes EVERY key in MENU_DATABASE
+    pill_options = list(MENU_DATABASE.keys()) + ["Rewards 👑"]
+    selected_tab = pills("", pill_options, index=0, label_visibility="collapsed")
     
     st.write("---")
     
-    if "Rewards" in selected:
+    if "Rewards" in selected_tab:
         render_rewards_center()
     else:
-        # Dynamic Menu Generator
-        items = MENU_DB.get(selected, [])
-        for item in items:
-            with st.container():
-                col_info, col_action = st.columns([4, 1])
-                with col_info:
-                    st.markdown(f"""
-                        <div class="menu-card">
-                            <h3>{item['icon']} {item['name']}</h3>
-                            <p style="color:#888;">{item['desc']}</p>
-                            <span class="price-text">${item['price']:.2f}</span>
-                        </div>
-                    """, unsafe_allow_html=True)
-                with col_action:
-                    st.write("") # Spacer
-                    st.write("")
-                    if st.button("➕", key=item['id']):
-                        SystemState.add_to_cart(item)
-
-def render_rewards_center():
-    st.title("Loyalty & Rewards")
-    st.write("### You do anything. You earn everything.")
-    
-    col_input, col_stats = st.columns(2)
-    
-    with col_input:
-        st.markdown("#### Link Your Phone")
-        phone = st.text_input("Mobile Number", placeholder="417-555-5555", 
-                              value=st.session_state.phone if st.session_state.phone else "")
-        if st.button("Access My Kingdom"):
-            if len(phone) >= 10:
-                st.session_state.phone = phone
-                st.success("Synchronized. Welcome to the inner circle.")
-            else:
-                st.error("Please enter a valid 10-digit number.")
-    
-    with col_stats:
-        if st.session_state.phone:
-            st.metric("Total Points", f"{st.session_state.points} PTS")
-            progress = (st.session_state.points % 50) / 50
-            st.write(f"**Next Reward:** {50 - (st.session_state.points % 50)} points away")
-            st.progress(progress)
-            st.caption("50 Points = 1 Free Entree or Margarita")
-
-def render_kds_ui():
-    st.title("Kitchen Display System (KDS)")
-    st.markdown('<div class="status-bar" style="background-color: #D4AF37;">STAFF VIEW ONLY</div>', unsafe_allow_html=True)
-    
-    if not st.session_state.orders:
-        st.info("The kitchen is clear. Waiting for orders... 🔥")
-        return
-
-    # Grid layout for tickets
-    cols = st.columns(3)
-    for idx, order in enumerate(st.session_state.orders):
-        with cols[idx % 3]:
-            with st.expander(f"ORDER #{order['id']} - {order['time']}", expanded=True):
-                for item in order['items']:
-                    st.write(f"• **{item['name']}**")
-                st.write("---")
-                if st.button(f"DONE (Order {order['id']})", key=f"bump_{order['id']}"):
-                    st.session_state.orders.pop(idx)
-                    st.rerun()
-
-# ==============================================================================
-# 6. MAIN EXECUTION (THE BOOTLOADER)
-# ==============================================================================
-def main():
-    SystemState.initialize()
-    apply_custom_styles()
-    
-    # Sidebar Control Panel
-    with st.sidebar:
-        st.markdown(f"## System v{SYSTEM_CONFIG['version']}")
-        mode = st.radio("Access Level", ["Ordering App", "Staff (KDS)", "Admin Metrics"])
-        
-        if mode == "Ordering App":
-            st.write("---")
-            st.header("Your Cart 🛒")
-            if not st.session_state.cart:
-                st.write("Your cart is empty.")
-            else:
-                for idx, item in enumerate(st.session_state.cart):
-                    st.write(f"{item['name']} - ${item['price']:.2f}")
-                
-                total = sum(i['price'] for i in st.session_state.cart)
-                st.markdown(f"### Total: **${total:.2f}**")
-                
-                if st.button("SEND TO KITCHEN", type="primary"):
-                    SystemState.submit_order()
-
-    # Route to selected view
-    if mode == "Ordering App":
-        render_customer_ui()
-    elif mode == "Staff (KDS)":
-        render_kds_ui()
-    else:
-        st.title("Admin Data Lake")
-        st.write("Real-time revenue and behavioral tracking metrics under development.")
+        render_menu_engine(selected_tab)
 
 if __name__ == "__main__":
     main()
