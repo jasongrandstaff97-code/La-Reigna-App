@@ -1,204 +1,275 @@
 import streamlit as st
-import os
+from streamlit_pills import pills
 import time
-import datetime
+import base64
 
 # ==========================================
-# 1. THE "GLOBAL BRAIN" (Shared Database)
+# 1. GLOBAL SYSTEM CONFIGURATION (The OS DNA)
 # ==========================================
-# st.cache_resource keeps this data alive across ALL users/devices
-@st.cache_resource
-def get_global_order_db():
-    return []
-
-orders_db = get_global_order_db()
-
-# ==========================================
-# 2. PAGE CONFIG & ASSETS
-# ==========================================
-st.set_page_config(page_title="La Reina Margaritas", page_icon="👑", layout="wide")
-
-# Local User Assets (Personal Spend & Cart)
-if 'cart' not in st.session_state:
-    st.session_state.cart = []
-if 'total_spend' not in st.session_state:
-    st.session_state.total_spend = 0.0
-
-# ==========================================
-# 3. THE "GENIUS" UI & JS ENGINE
-# ==========================================
-st.markdown("""
-    <style>
-    /* Global Aesthetic */
-    .stApp { background-color: #000000 !important; }
-    
-    /* REWARDS CONTAINER */
-    .rewards-box {
-        background-color: #111;
-        border: 2px solid #D4AF37;
-        padding: 15px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 20px;
+SYSTEM_CONFIG = {
+    "version": "2.1.0-PRO",
+    "branding": {
+        "name": "La Reina Margaritas",
+        "primary": "#D4AF37",    # Gold
+        "secondary": "#4CBB17",  # Poblano Green
+        "bg_dark": "#0A0A0A",    # Deepest Black
+        "card_bg": "#161616",    # Subtle gray-black
+        "text": "#FFFFFF",
+        "logo_url": "https://raw.githubusercontent.com/jason-grandstaff/logo-repo/main/la_reina_logo.png"
+    },
+    "audio": {
+        "order_ping": "https://www.soundjay.com/buttons/beep-01a.mp3" # Placeholder
     }
-
-    /* KITCHEN CARD SYSTEM */
-    .kds-card {
-        background-color: #0a0a0a;
-        border: 3px solid #84bd00;
-        border-radius: 20px;
-        padding: 25px;
-        margin: 10px;
-        box-shadow: 0px 5px 15px rgba(132, 189, 0, 0.2);
-    }
-    .kds-header { color: #84bd00; font-size: 32px; font-weight: 900; }
-    .kds-items { color: #ffffff; font-size: 24px; font-family: monospace; }
-    .kds-time { color: #555; font-size: 14px; }
-
-    /* MEGA PILLS */
-    div[data-testid="stPill"] button {
-        background-color: #1a1a1a !important; 
-        color: #D4AF37 !important;           
-        border: 2px solid #D4AF37 !important; 
-        font-size: 20px !important;           
-        border-radius: 50px !important;
-        padding: 10px 20px !important;      
-    }
-    </style>
-
-    <script>
-    // THE SPACEBAR BUMP LISTENER
-    const doc = window.parent.document;
-    doc.addEventListener('keydown', function(e) {
-        if (e.code === 'Space') {
-            const buttons = Array.from(doc.querySelectorAll('button'));
-            const bumpBtn = buttons.find(el => el.innerText.includes('BUMP'));
-            if (bumpBtn) { bumpBtn.click(); }
-        }
-    });
-    </script>
-""", unsafe_allow_html=True)
+}
 
 # ==========================================
-# 4. SHARED FUNCTIONS
+# 2. DATA INFRASTRUCTURE (The Master Inventory)
 # ==========================================
-def play_ding():
-    audio_url = "https://www.soundjay.com/buttons/beep-07a.mp3" 
-    st.components.v1.html(f'<audio autoplay><source src="{audio_url}"></audio>', height=0)
-
-logo_file = "la_reina_dark.png"
+# In V3, this moves to Supabase. For now, it's a robust object.
+MENU_DATABASE = {
+    "Tacos": [
+        {"id": "t1", "name": "Street Taco", "desc": "Cilantro, onion, lime", "price": 3.50, "image": "🌮"},
+        {"id": "t2", "name": "Al Pastor", "desc": "Marinated pork, pineapple", "price": 4.00, "image": "🍍"},
+        {"id": "t3", "name": "Barbacoa", "desc": "Slow-braised beef", "price": 4.50, "image": "🥩"}
+    ],
+    "Entrees": [
+        {"id": "e1", "name": "Enchiladas Verdes", "desc": "Three chicken enchiladas", "price": 14.00, "image": "🥘"},
+        {"id": "e2", "name": "Burrito Grande", "desc": "Rice, beans, protein, cheese", "price": 12.00, "image": "🌯"},
+        {"id": "e3", "name": "Fajita Platter", "desc": "Sizzling peppers & onions", "price": 18.00, "image": "🔥"}
+    ],
+    "Appetizers": [
+        {"id": "a1", "name": "Guacamole & Chips", "desc": "Fresh made daily", "price": 8.00, "image": "🥑"},
+        {"id": "a2", "name": "Queso Fundido", "desc": "Melted cheese with chorizo", "price": 9.00, "image": "🧀"}
+    ],
+    "Drinks": [
+        {"id": "d1", "name": "House Margarita", "desc": "Gold tequila, fresh lime", "price": 9.00, "image": "🍹"},
+        {"id": "d2", "name": "Paloma", "desc": "Grapefruit soda, lime, tequila", "price": 10.00, "image": "🍊"},
+        {"id": "d3", "name": "Agua Fresca", "desc": "Seasonal fresh fruit water", "price": 4.00, "image": "🥤"}
+    ]
+}
 
 # ==========================================
-# 5. ROUTING LOGIC (Separate Entities)
+# 3. ADVANCED STYLING ENGINE (The Behavioral UX)
 # ==========================================
-# Check if URL ends in ?view=kitchen
-query_params = st.query_params
-
-if query_params.get("view") == "kitchen":
-    # ------------------------------------------
-    # KITCHEN ENTITY (The Fire TV View)
-    # ------------------------------------------
-    st.markdown("<h1 style='color: #84bd00; text-align:center;'>LIVE KITCHEN FEED</h1>", unsafe_allow_html=True)
-    
-    # New Order Notification Logic
-    if 'prev_count' not in st.session_state:
-        st.session_state.prev_count = len(orders_db)
-    
-    if len(orders_db) > st.session_state.prev_count:
-        play_ding()
-        st.session_state.prev_count = len(orders_db)
-
-    if not orders_db:
-        st.info("Kitchen is clear. Good job team.")
-    else:
-        # Display orders in a 3-column grid for the TV
-        cols = st.columns(3)
-        for idx, order in enumerate(orders_db):
-            col_idx = idx % 3
-            with cols[col_idx]:
-                st.markdown(f"""
-                    <div class="kds-card">
-                        <div class="kds-header">#{order['id']}</div>
-                        <div class="kds-items">{order['items']}</div>
-                        <div class="kds-time">{order['time']}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"BUMP #{order['id']}", key=f"bump_{order['time']}"):
-                    orders_db.pop(idx)
-                    st.session_state.prev_count -= 1
-                    st.rerun()
-
-    # Self-refresh every 10 seconds to pull new orders from the "Global Brain"
-    time.sleep(10)
-    st.rerun()
-
-else:
-    # ------------------------------------------
-    # CUSTOMER ENTITY (The Phone View)
-    # ------------------------------------------
-    
-    # Logo Fallback Logic
-    _, mid, _ = st.columns([1, 2, 1])
-    with mid:
-        if os.path.exists(logo_file):
-            st.image(logo_file, use_container_width=True)
-        else:
-            st.markdown("<h1 style='color: #D4AF37; text-align:center;'>LA REINA</h1>", unsafe_allow_html=True)
-    
-    # Rewards Bar Logic
-    def get_heat_status(spend):
-        if spend < 50: return "Poblano 🫑", "#4CBB17", 33
-        if spend < 150: return "Jalapeño 🌶️", "#FFD700", 66
-        return "Habanero 🔥", "#FF4500", 100
-
-    h_name, h_color, h_val = get_heat_status(st.session_state.total_spend)
-    
+def apply_enterprise_styles():
     st.markdown(f"""
-        <div class="rewards-box" style="border-color: {h_color};">
-            <span style="color: white; font-size: 14px;">STATUS:</span> 
-            <span style="color: {h_color}; font-weight: bold; font-size: 20px;">{h_name}</span>
-        </div>
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+    
+    html, body, [data-testid="stAppViewContainer"] {{
+        background-color: {SYSTEM_CONFIG['branding']['bg_dark']};
+        color: {SYSTEM_CONFIG['branding']['text']};
+        font-family: 'Inter', sans-serif;
+    }}
+    
+    /* The Mega-Pill Card */
+    .menu-card {{
+        background-color: {SYSTEM_CONFIG['branding']['card_bg']};
+        border: 1px solid #333;
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 16px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }}
+    .menu-card:hover {{
+        border-color: {SYSTEM_CONFIG['branding']['primary']};
+        transform: translateY(-2px);
+    }}
+    
+    /* Status Bars */
+    .poblano-header {{
+        background: linear-gradient(90deg, {SYSTEM_CONFIG['branding']['secondary']} 0%, #2e7d32 100%);
+        color: white;
+        padding: 10px;
+        text-align: center;
+        border-radius: 8px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }}
+    
+    /* Buttons */
+    .stButton>button {{
+        background-color: {SYSTEM_CONFIG['branding']['primary']};
+        color: black !important;
+        border-radius: 12px;
+        border: none;
+        font-weight: bold;
+        height: 3em;
+        width: 100%;
+    }}
+    
+    /* KDS Specific Styles */
+    .kds-ticket {{
+        background-color: #f5f5f5;
+        color: #111;
+        padding: 15px;
+        border-left: 10px solid {SYSTEM_CONFIG['branding']['secondary']};
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }}
+    </style>
     """, unsafe_allow_html=True)
-    st.progress(h_val / 100)
 
-    st.divider()
+# ==========================================
+# 4. SYSTEM UTILITIES (The Backend Logic)
+# ==========================================
+class LaReinaOS:
+    @staticmethod
+    def init_state():
+        if 'view' not in st.session_state: st.session_state.view = "Customer"
+        if 'cart' not in st.session_state: st.session_state.cart = []
+        if 'orders' not in st.session_state: st.session_state.orders = []
+        if 'user_phone' not in st.session_state: st.session_state.user_phone = None
+        if 'points' not in st.session_state: st.session_state.points = 0
 
-    # Menu Categories
-    cat = st.pills("Menu", ["Tacos", "Entrees", "Drinks"], label_visibility="collapsed")
-    MENU = {
-        "Tacos": [{"n": "Street Tacos", "p": 10.50}, {"n": "Birria Tacos", "p": 13.99}],
-        "Entrees": [{"n": "Carne Asada", "p": 18.99}],
-        "Drinks": [{"n": "House Margarita", "p": 9.00}]
-    }
+    @staticmethod
+    def play_sound():
+        # JavaScript Audio Injection
+        sound_html = f"""
+            <audio autoplay>
+                <source src="{SYSTEM_CONFIG['audio']['order_ping']}" type="audio/mp3">
+            </audio>
+        """
+        st.components.v1.html(sound_html, height=0)
 
-    if cat:
-        for item in MENU[cat]:
-            c1, c2 = st.columns([4, 1])
-            c1.markdown(f"**{item['n']}** — ${item['p']}")
-            if c2.button("＋", key=f"add_{item['n']}"):
-                st.session_state.cart.append(item)
-                st.toast(f"{item['n']} added!")
+    @staticmethod
+    def add_to_cart(item):
+        st.session_state.cart.append(item)
+        st.toast(f"✅ Added {item['name']} to order!")
 
-    # Sidebar Cart
-    with st.sidebar:
-        st.header("🛒 Order Summary")
-        if not st.session_state.cart:
-            st.write("Cart is empty.")
-        else:
-            total = sum(i['p'] for i in st.session_state.cart)
-            for i in st.session_state.cart:
-                st.write(f"• {i['n']} (${i['p']})")
-            
-            st.subheader(f"Total: ${total:.2f}")
-            if st.button("SEND TO KITCHEN", use_container_width=True):
-                # Push order to Global Brain
-                new_ticket = {
-                    "id": len(orders_db) + 101,
-                    "items": "<br>".join([i['n'] for i in st.session_state.cart]),
-                    "time": datetime.datetime.now().strftime("%I:%M %p")
-                }
-                orders_db.append(new_ticket)
-                st.session_state.total_spend += total
-                st.session_state.cart = []
+# ==========================================
+# 5. UI MODULES (The Component Library)
+# ==========================================
+
+def render_customer_view():
+    st.image(SYSTEM_CONFIG['branding']['logo_url'], width=220)
+    st.markdown('<div class="poblano-header">KITCHEN ONLINE • SELECT ITEMS</div>', unsafe_allow_html=True)
+
+    # Navigation Pills
+    categories = list(MENU_DATABASE.keys()) + ["Rewards 👑"]
+    active_tab = pills("Menu", categories, index=0, label_visibility="collapsed")
+
+    st.write("---")
+
+    if "Rewards" in active_tab:
+        render_rewards_center()
+    else:
+        # Dual Column Layout for Menu
+        items = MENU_DATABASE.get(active_tab, [])
+        for i in range(0, len(items), 2):
+            cols = st.columns(2)
+            for idx, col in enumerate(cols):
+                if i + idx < len(items):
+                    item = items[i+idx]
+                    with col:
+                        st.markdown(f"""
+                        <div class="menu-card">
+                            <span style="font-size: 2rem;">{item['image']}</span>
+                            <h3 style="margin: 10px 0;">{item['name']}</h3>
+                            <p style="color: #888; font-size: 0.9rem;">{item['desc']}</p>
+                            <h2 style="color: {SYSTEM_CONFIG['branding']['primary']};">${item['price']:.2f}</h2>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        if st.button(f"Add {item['name']}", key=item['id']):
+                            LaReinaOS.add_to_cart(item)
+
+def render_rewards_center():
+    st.title("Loyalty & Rewards")
+    col1, col2 = st.columns([2,1])
+    
+    with col1:
+        st.markdown("""
+        ### Why Join the Kingdom?
+        * **1 Point** for every $1 spent.
+        * **Free Taco** at 50 points.
+        * **Birthday Surprise** every year.
+        """)
+        
+        phone = st.text_input("Enter Phone Number", value=st.session_state.user_phone if st.session_state.user_phone else "")
+        if st.button("Link Account"):
+            if len(phone) >= 10:
+                st.session_state.user_phone = phone
+                st.success("Welcome back! Your points are being tracked.")
                 st.balloons()
+            else:
+                st.error("Please enter a valid 10-digit mobile number.")
+    
+    with col2:
+        if st.session_state.user_phone:
+            st.metric("Your Points", f"{st.session_state.points} PTS")
+            st.progress(st.session_state.points / 50 if st.session_state.points < 50 else 1.0)
+            st.caption("Next Reward: 50 Points")
+
+def render_kds_view():
+    st.markdown(f"<h1 style='color:{SYSTEM_CONFIG['branding']['secondary']}'>Kitchen Display System</h1>", unsafe_allow_html=True)
+    st.write("---")
+    
+    if not st.session_state.orders:
+        st.info("Waiting for new orders... 🔥")
+    
+    # Grid for KDS Tickets
+    cols = st.columns(3)
+    for idx, order in enumerate(st.session_state.orders):
+        with cols[idx % 3]:
+            st.markdown(f"""
+            <div class="kds-ticket">
+                <h4>ORDER #{order['id']}</h4>
+                <hr>
+                {'<br>'.join([f"• {i['name']}" for i in order['items']])}
+                <hr>
+                <strong>TIME: {order['time']}</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("BUMP", key=f"bump_{idx}"):
+                st.session_state.orders.pop(idx)
                 st.rerun()
+
+def render_sidebar():
+    with st.sidebar:
+        st.title("System Control")
+        st.session_state.view = st.radio("Access Level", ["Customer", "Kitchen (KDS)", "Admin"])
+        
+        st.write("---")
+        if st.session_state.view == "Customer":
+            st.subheader("🛒 Current Cart")
+            if not st.session_state.cart:
+                st.write("Your cart is empty.")
+            else:
+                for item in st.session_state.cart:
+                    st.write(f"• {item['name']} (${item['price']})")
+                
+                total = sum([i['price'] for i in st.session_state.cart])
+                st.markdown(f"### Total: ${total:.2f}")
+                
+                if st.button("🚀 PLACE ORDER"):
+                    new_order = {
+                        "id": len(st.session_state.orders) + 101,
+                        "items": st.session_state.cart,
+                        "time": time.strftime("%H:%M:%S")
+                    }
+                    st.session_state.orders.append(new_order)
+                    st.session_state.points += int(total)
+                    st.session_state.cart = []
+                    LaReinaOS.play_sound()
+                    st.success("Order sent to kitchen!")
+
+# ==========================================
+# 6. MAIN EXECUTION (The Bootloader)
+# ==========================================
+def main():
+    LaReinaOS.init_state()
+    apply_enterprise_styles()
+    render_sidebar()
+
+    if st.session_state.view == "Customer":
+        render_customer_view()
+    elif st.session_state.view == "Kitchen (KDS)":
+        render_kds_view()
+    else:
+        st.title("Admin Dashboard")
+        st.write("Detailed analytics and inventory management coming soon.")
+
+if __name__ == "__main__":
+    main()
