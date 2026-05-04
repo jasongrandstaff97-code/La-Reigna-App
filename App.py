@@ -1,9 +1,92 @@
 import streamlit as st
 import random
-from database_engine import SystemConfig, sync_user_data, update_user_points, log_transaction, get_sales_data, bump_kitchen_ticket
 from streamlit_autorefresh import st_autorefresh
+import json
+import os
+import datetime
 
-# --- 1. SYSTEM CONFIG & STYLES ---
+# ==========================================
+# 1. DATABASE ENGINE (MERGED INTO APP)
+# ==========================================
+class SystemConfig:
+    RESTAURANT_NAME = "La Reina"
+    PRIMARY_COLOR = "#D4AF37"  # Gold
+    ACCENT_COLOR = "#7FFF00"   # Poblano Green
+    BG_COLOR = "#000000"       # Deep Black
+    LOGO_PATH = "la_reina_dark.png" 
+    TAX_RATE = 0.085           # 8.5% Tax
+    DB_FILE = "la_reina_db.json"      # User/Rewards Ledger
+    SALES_DB = "la_reina_sales.json"  # Financial/Ticket Ledger
+    ADMIN_CODE = "9999999999"         # God Mode Unlock
+
+def load_db():
+    if os.path.exists(SystemConfig.DB_FILE):
+        with open(SystemConfig.DB_FILE, 'r') as f:
+            return json.load(f)
+    return {} 
+
+def save_db(db_data):
+    with open(SystemConfig.DB_FILE, 'w') as f:
+        json.dump(db_data, f, indent=4)
+
+def sync_user_data(phone_number):
+    db = load_db()
+    if phone_number not in db:
+        db[phone_number] = {"points": 0, "lifetime_orders": 0}
+        save_db(db)
+    st.session_state.reward_points = db[phone_number]["points"]
+
+def update_user_points(phone_number, points_to_add):
+    db = load_db()
+    if phone_number in db:
+        db[phone_number]["points"] += points_to_add
+        db[phone_number]["lifetime_orders"] += 1
+        save_db(db)
+        st.session_state.reward_points = db[phone_number]["points"]
+
+def log_transaction(order_num, order_type, cart_items, total_price):
+    if os.path.exists(SystemConfig.SALES_DB):
+        with open(SystemConfig.SALES_DB, 'r') as f:
+            sales = json.load(f)
+    else:
+        sales = []
+    
+    new_order = {
+        "order_id": order_num,
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "type": order_type,
+        "items": [item['name'] for item in cart_items],
+        "total": total_price,
+        "status": "PENDING"
+    }
+    
+    sales.append(new_order)
+    with open(SystemConfig.SALES_DB, 'w') as f:
+        json.dump(sales, f, indent=4)
+
+def get_sales_data():
+    if os.path.exists(SystemConfig.SALES_DB):
+        with open(SystemConfig.SALES_DB, 'r') as f:
+            return json.load(f)
+    return []
+
+def bump_kitchen_ticket(order_id):
+    if os.path.exists(SystemConfig.SALES_DB):
+        with open(SystemConfig.SALES_DB, 'r') as f:
+            sales = json.load(f)
+            
+        for order in sales:
+            if order["order_id"] == order_id:
+                order["status"] = "COMPLETED"
+                break
+                
+        with open(SystemConfig.SALES_DB, 'w') as f:
+            json.dump(sales, f, indent=4)
+
+
+# ==========================================
+# 2. SYSTEM CONFIG & STYLES
+# ==========================================
 st.set_page_config(
     page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
     layout="wide",
@@ -18,18 +101,15 @@ def inject_styles():
         .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
         
-        /* THE STATUS ENGINE */
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
-        /* THE 6-PILL GRID */
         .stButton>button {{ width: 100%; height: 75px !important; background-color: #111 !important; border: 2px solid #333 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border-radius: 12px !important; font-weight: 800 !important; text-transform: uppercase; transition: 0.2s; }}
         .stButton>button:hover {{ border-color: {SystemConfig.PRIMARY_COLOR} !important; background: #1a1a1a !important; transform: translateY(-2px); }}
         
         .active-tab > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
         .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
-        /* MENU & MANIFEST */
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
@@ -40,11 +120,9 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
         
-        /* EXPRESS PAYMENTS */
         .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
         .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
 
-        /* KDS STATION */
         .kds-card {{ background-color: #080808; border-left: 10px solid {SystemConfig.PRIMARY_COLOR}; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; }}
         .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
         .kds-dine-in {{ background-color: #2E7D32; color: white; }}
@@ -52,7 +130,6 @@ def inject_styles():
         .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .ticket-items {{ font-size: 1.5rem; color: #FFF; margin-top: 20px; line-height: 1.5; }}
 
-        /* ADMIN LOGS */
         .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
         .metric-box {{ background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333; }}
         
@@ -60,7 +137,6 @@ def inject_styles():
         </style>
 
         <script>
-        // Spacebar Bump Script for KDS
         document.addEventListener('keydown', function(e) {{
             if (e.code === 'Space') {{
                 const bumpBtn = window.parent.document.querySelector('button[kind="primary"]');
@@ -70,7 +146,10 @@ def inject_styles():
         </script>
     """, unsafe_allow_html=True)
 
-# --- 2. DATA LAYER ---
+
+# ==========================================
+# 3. MENU DATA & LOGIC
+# ==========================================
 def get_master_menu():
     return {
         "Lunch Specials": [
@@ -104,7 +183,6 @@ def get_tier_info(pts):
     elif pts < 5000: return "JALAPEÑO 🌶️", 5000, "HABANERO", "#FFA500"
     else: return "HABANERO 🔥", 10000, "EL REY", "#D4AF37"
 
-# --- 3. STATE & LOGIC ---
 def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'cart' not in st.session_state: st.session_state.cart = []
@@ -142,30 +220,27 @@ def complete_kds_ticket(index, order_id):
         bump_kitchen_ticket(order_id)
         st.rerun()
 
-# --- 4. THE SANITIZED PORTAL ---
+
+# ==========================================
+# 4. USER INTERFACES
+# ==========================================
 def render_login():
     _, col, _ = st.columns([1, 2, 1])
     with col:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        # Cloud-Safe Image Fallback
         try:
             st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except Exception:
             st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-weight:900;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
             
         st.markdown("<h4 style='text-align:center; color:#888;'>WELCOME. ENTER YOUR PHONE NUMBER.</h4>", unsafe_allow_html=True)
-        
         phone_input = st.text_input("PHONE", placeholder="417-000-0000", label_visibility="collapsed")
         
         if phone_input:
             clean_key = "".join(filter(str.isdigit, phone_input))
-            
-            # Fibonacci Portal
             if clean_key == "0112358132":
                 st.session_state.view_mode = "kds"
                 st.rerun()
-            
-            # Standard & Admin Portal
             elif len(clean_key) >= 10:
                 if clean_key == SystemConfig.ADMIN_CODE: 
                     st.session_state.is_admin = True
@@ -174,11 +249,9 @@ def render_login():
                 st.session_state.phone_number = clean_key
                 st.rerun()
 
-# --- 5. THE CUSTOMER UI ---
 def render_customer_os():
     _, logo_col, _ = st.columns([1, 2, 1])
     with logo_col: 
-        # Cloud-Safe Image Fallback
         try:
             st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except Exception:
@@ -247,7 +320,7 @@ def render_customer_os():
         st.write("YOUR SELECTIONS WILL APPEAR HERE.")
     else:
         subtotal = sum(i['price'] for i in st.session_state.cart)
-        tax = subtotal * 0.085
+        tax = subtotal * SystemConfig.TAX_RATE
         total = subtotal + tax
 
         for item in st.session_state.cart:
@@ -280,11 +353,9 @@ def render_customer_os():
 
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- 6. THE KITCHEN VIEW (LIVE KDS) ---
 def render_kds():
     _, logo_col, _ = st.columns([1, 1, 1])
     with logo_col: 
-        # Cloud-Safe Image Fallback
         try:
             st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except Exception:
@@ -318,7 +389,6 @@ def render_kds():
     
     st_autorefresh(interval=10000, key="kds_refresh")
 
-# --- 7. THE EXECUTIVE DASHBOARD (ADMIN) ---
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color: #333;'>", unsafe_allow_html=True)
@@ -360,7 +430,9 @@ def render_admin_os():
     
     st_autorefresh(interval=15000, key="admin_refresh")
 
-# --- 8. RUNTIME ROUTER ---
+# ==========================================
+# 5. RUNTIME ROUTER
+# ==========================================
 def render_main_os():
     if st.session_state.is_admin:
         render_admin_os()
