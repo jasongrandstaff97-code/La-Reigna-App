@@ -77,7 +77,7 @@ def bump_kitchen_ticket(order_id):
         with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. SYSTEM CONFIG & STYLES (WITH MOBILE GRID PATCH)
+# 2. SYSTEM CONFIG & STYLES (TRUE PILL CSS)
 # ==========================================
 st.set_page_config(
     page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
@@ -96,13 +96,39 @@ def inject_styles():
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
-        .stButton>button {{ width: 100%; height: 75px !important; background-color: #111 !important; border: 2px solid #333 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border-radius: 12px !important; font-weight: 800 !important; text-transform: uppercase; transition: 0.2s; font-size: 14px !important; }}
-        .stButton>button:hover {{ border-color: {SystemConfig.PRIMARY_COLOR} !important; background: #1a1a1a !important; transform: translateY(-2px); }}
+        /* TRUE PILL LOGIC (INACTIVE STATE) */
+        .stButton>button {{ 
+            width: 100%; 
+            height: 55px !important; 
+            background-color: transparent !important; 
+            border: 1px solid #444 !important; 
+            color: #bbb !important; 
+            border-radius: 50px !important; /* Fully rounded capsule */
+            font-weight: 700 !important; 
+            text-transform: uppercase; 
+            transition: 0.2s; 
+            font-size: 13px !important; 
+        }}
+        .stButton>button:hover {{ 
+            border-color: {SystemConfig.PRIMARY_COLOR} !important; 
+            color: {SystemConfig.PRIMARY_COLOR} !important; 
+        }}
         
-        .active-tab > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
-        .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
+        /* TRUE PILL LOGIC (ACTIVE HIGHLIGHT) */
+        .active-tab > div > button {{ 
+            background-color: #FF4B4B !important; /* Vibrant Red */
+            color: white !important; 
+            border: 1px solid #FF4B4B !important; 
+        }}
         
-        /* THE MOBILE GRID OVERRIDE */
+        /* VIP RESERVA LOCK */
+        .active-reserva > div > button {{ 
+            background-color: {SystemConfig.PRIMARY_COLOR} !important; 
+            color: black !important; 
+            border: 1px solid {SystemConfig.PRIMARY_COLOR} !important; 
+        }}
+        
+        /* THE MOBILE 3x3 GRID OVERRIDE */
         @media (max-width: 768px) {{
             [data-testid="stHorizontalBlock"] {{
                 flex-direction: row !important;
@@ -115,9 +141,9 @@ def inject_styles():
                 min-width: 30% !important;
             }}
             .stButton>button {{
-                font-size: 11px !important;
-                padding: 4px !important;
-                height: 60px !important;
+                font-size: 10px !important;
+                padding: 2px !important;
+                height: 50px !important;
             }}
         }}
 
@@ -131,8 +157,8 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
         
-        .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
-        .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
+        .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; border-radius: 12px !important; }}
+        .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; border-radius: 12px !important; }}
 
         .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
         .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
@@ -178,25 +204,59 @@ def inject_kds_keyboard_hack():
     )
 
 # ==========================================
-# 3. MENU DATA & STATE LOGIC (9 CATEGORIES)
+# 3. MENU DATA & STATE LOGIC
 # ==========================================
 def get_master_menu():
     return {
-        "Specials": [
-            {"id": "SP1", "name": "Birria Pizza", "desc": "10-inch flour tortilla stacked with birria, cheese, onion.", "price": 18.00},
-            {"id": "SP2", "name": "Molcajete", "desc": "Volcanic rock bowl with steak, chicken, shrimp, salsa.", "price": 26.00}
-        ],
         "Appetizers": [
-            {"id": "A1", "name": "Queso Blanco", "desc": "Creamy melted white cheese dip with jalapeño hints.", "price": 5.99},
-            {"id": "A2", "name": "Fresh Guacamole", "desc": "Avocado, lime, cilantro, tomatoes, onions.", "price": 7.50}
+            {"id": "A1", "name": "Famoso Queso Casero", "desc": "House-made queso with a hint of Hatch chili pepper.", "price": 8.00},
+            {"id": "A2", "name": "Top Shelf Guacamole", "desc": "Fresh avocado dip, lime juice, garlic, onion, and cilantro.", "price": 9.00},
+            {"id": "A3", "name": "Agua Chile de Camaron", "desc": "Jumbo butterfly cut shrimp marinated in serrano lime broth.", "price": 14.00},
+            {"id": "A4", "name": "Tamale de Elote Trufado", "desc": "Sweet corn tamale, queso fresco, truffle oil, roasted poblano crema.", "price": 7.00},
+            {"id": "A5", "name": "Esquites de la Casa", "desc": "Charred corn, epazote aioli, chile ash, queso fresco, tajin.", "price": 8.00},
+            {"id": "A6", "name": "Empanadas", "desc": "Two flaky pastries filled with slow-cooked shredded beef.", "price": 9.00},
+            {"id": "A7", "name": "Stuffed Avocados", "desc": "Avocados filled with cheese, jalapeño, chorizo, battered & fried.", "price": 13.00},
+            {"id": "A8", "name": "Chilaquiles de la Casa", "desc": "Baked chips covered in house-made mole and sour cream drizzle.", "price": 12.00},
+            {"id": "A9", "name": "Flor de Calabaza", "desc": "Two empanadas filled with queso and flor de calabaza.", "price": 14.00},
+            {"id": "A10", "name": "Tres Cheese Tostadas", "desc": "Crisp tortillas, refried beans, three melted cheeses, pico.", "price": 9.00},
+            {"id": "A11", "name": "Fried Calamari", "desc": "Lightly breaded calamari rings with house-made chipotle aioli.", "price": 14.00},
+            {"id": "A12", "name": "Flautas", "desc": "Three rolled, deep-fried taquitos filled with shredded chicken.", "price": 10.00},
+            {"id": "A13", "name": "Table Side Cart Special", "desc": "Appetizer trio: queso flameado, fresh guac, and roasted salsa.", "price": 17.00}
+        ],
+        "Soups & Salads": [
+            {"id": "SS1", "name": "Ensalada Royal", "desc": "Spring mix, grape tomato, jicama, goat cheese, raspberry vinaigrette.", "price": 10.00},
+            {"id": "SS2", "name": "Sopa de Tortilla", "desc": "Chipotle chicken broth, shredded chicken, crispy chips, avocado.", "price": 12.00},
+            {"id": "SS3", "name": "Blackened Chicken Salad", "desc": "Crisp lettuce, blackened chicken, fire-roasted corn, black beans.", "price": 14.00},
+            {"id": "SS4", "name": "El Rey Bowl", "desc": "Sautéed shrimp, greens, cucumber, corn, avocado over white rice.", "price": 15.00}
+        ],
+        "Entrees": [
+            {"id": "E1", "name": "Tamale Plate", "desc": "Two tamales topped with chile con carne, cheese, sour cream sauce.", "price": 14.00},
+            {"id": "E2", "name": "Puffy Tacos", "desc": "Three deep-fried puffy shells filled with beans and birria.", "price": 15.00},
+            {"id": "E3", "name": "Rey Birria Nachos", "desc": "Crispy nachos topped with birria, queso sauce, corona sauce.", "price": 18.00},
+            {"id": "E4", "name": "Reina Style Enchiladas", "desc": "Three Texas-style enchiladas with shredded chicken & melted cheese.", "price": 16.00},
+            {"id": "E5", "name": "Ribeye Tacos", "desc": "Three ribeye tacos with cilantro, onion, salsa cruda, street corn.", "price": 24.00},
+            {"id": "E6", "name": "Tampiqueña Real", "desc": "10 oz beef skirt, two quajillo and queso fresco enchiladas.", "price": 22.75},
+            {"id": "E7", "name": "Birria Torta", "desc": "Hearty sandwich with slow-cooked birria beef on a soft telera.", "price": 16.00},
+            {"id": "E8", "name": "Pollo Pibil", "desc": "Citrus & achiote marinated chicken cooked in banana leaves.", "price": 16.00},
+            {"id": "E9", "name": "Mole Poblano", "desc": "Slow-cooked chicken smothered in rich mole sauce (chiles/chocolate/nuts).", "price": 16.75},
+            {"id": "E10", "name": "Milanesa Empanizada", "desc": "Crispy breaded chicken or beef cutlet served with Mexican rice.", "price": 16.00},
+            {"id": "E11", "name": "Chile Relleno", "desc": "Roasted poblano pepper stuffed with cheese or seasoned meat.", "price": 14.75},
+            {"id": "E12", "name": "Barbacoa Plate", "desc": "Slow-cooked shredded beef simmered in traditional spices.", "price": 16.00},
+            {"id": "E13", "name": "Salsa Verde Carnitas", "desc": "Tender pork chunks cooked in a special house-made green sauce.", "price": 16.00},
+            {"id": "E14", "name": "Burrito Mexicano", "desc": "Large tortilla, chicken fajita, sautéed onion, red bell pepper.", "price": 16.00},
+            {"id": "E15", "name": "Mexican Enchiladas", "desc": "Three rolled tortillas: cheese (1), shredded chicken (1), beef (1).", "price": 14.75}
+        ],
+        "Sizzling Platters": [
+            {"id": "P1", "name": "El Real Molcajete", "desc": "Sizzling molcajete with your choice of protein over smoking veggies.", "price": 19.00},
+            {"id": "P2", "name": "Fajita Alambre", "desc": "Grilled beef or chicken, onions, peppers, bacon, melted cheese, pineapple.", "price": 17.75},
+            {"id": "P3", "name": "Pollo a la Plancha", "desc": "Tender marinated chicken grilled on a plancha for a smoky finish.", "price": 16.75},
+            {"id": "P4", "name": "Sizzling Fajitas", "desc": "Tender chicken or steak fajitas grilled over open flame.", "price": 18.75},
+            {"id": "P5", "name": "Parrillada Nortena (For 2)", "desc": "Mexican-style mixed grill: Beef skirt, Chicken, Chorizo, Sausage.", "price": 39.00},
+            {"id": "P6", "name": "Parrillada Nortena (For 4)", "desc": "Massive Mexican-style mixed grill served on a sizzling platter for four.", "price": 59.00}
         ],
         "Tacos": [
             {"id": "T1", "name": "Street Taco", "desc": "Asada, cilantro, onion, lime on corn tortillas.", "price": 3.50},
             {"id": "T2", "name": "Al Pastor", "desc": "Marinated pork, pineapple, cilantro, onion.", "price": 3.75}
-        ],
-        "Entrees": [
-            {"id": "E1", "name": "Burrito California", "desc": "Massive burrito: steak, fries, cheese, guac, sour cream.", "price": 14.50},
-            {"id": "E2", "name": "Carne Asada", "desc": "Thinly sliced grilled steak, grilled onions, rice, beans.", "price": 17.50}
         ],
         "Drinks": [
             {"id": "D1", "name": "La Reina Rita", "desc": "House gold tequila, fresh lime, agave. Rocks or Frozen.", "price": 8.99},
@@ -209,10 +269,6 @@ def get_master_menu():
         "Desserts": [
             {"id": "DS1", "name": "Golden Churros", "desc": "Crispy churros tossed in cinnamon sugar.", "price": 6.50},
             {"id": "DS2", "name": "Tres Leches", "desc": "Classic sponge cake soaked in three milks.", "price": 7.00}
-        ],
-        "Lunch Setup": [
-            {"id": "L1", "name": "Speedy Gonzales", "desc": "One taco, one enchilada, choice of rice or beans.", "price": 7.99},
-            {"id": "L2", "name": "Lunch Fajitas", "desc": "Steak or Chicken, peppers, onions, rice, beans.", "price": 10.50}
         ],
         "La Reserva": [
             {"id": "R1", "name": "Wagyu Birria Tacos", "desc": "Elite Wagyu beef, consome, Oaxacan cheese.", "price": 24.00},
@@ -228,7 +284,7 @@ def get_tier_info(pts):
 def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'cart' not in st.session_state: st.session_state.cart = []
-    if 'current_cat' not in st.session_state: st.session_state.current_cat = "Specials"
+    if 'current_cat' not in st.session_state: st.session_state.current_cat = "Appetizers"
     if 'is_admin' not in st.session_state: st.session_state.is_admin = False
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
@@ -297,7 +353,7 @@ def render_customer_os():
     menu = get_master_menu()
     categories = list(menu.keys())
     
-    # 3x3 COLUMN INJECTION
+    # THE 3x3 GRID (WITH TRUE PILL UX INJECTION)
     cols = st.columns(3)
     for i, cat in enumerate(categories):
         with cols[i % 3]:
@@ -316,11 +372,12 @@ def render_customer_os():
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
     
-    # Items still render in 2 columns for readability
     item_cols = st.columns(2)
     for idx, item in enumerate(menu[st.session_state.current_cat]):
         with item_cols[idx % 2]:
             st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
+            # Add button styled to match the dark theme
+            st.markdown("""<style>div.stButton>button[key^="add_"] { border-radius: 12px !important; background-color: #111 !important; color: #D4AF37 !important; border: 1px solid #333 !important; }</style>""", unsafe_allow_html=True)
             if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
                 st.session_state.cart.append(item)
                 st.toast(f"Added {item['name']}")
