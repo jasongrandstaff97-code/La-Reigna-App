@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_pills import pills
 from streamlit_autorefresh import st_autorefresh
 import streamlit.components.v1 as components
+import random
 
 # ==========================================
 # 1. GLOBAL SYSTEM CONFIGURATION
@@ -13,9 +14,10 @@ class SystemConfig:
     BG_COLOR = "#000000"       # Deep Black
     LOGO_PATH = "la_reina_dark.png" 
     REFRESH_RATE = 5000        # Live sync interval
+    TAX_RATE = 0.085           # 8.5% Tax
 
 st.set_page_config(
-    page_title=f"{SystemConfig.RESTAURANT_NAME} Rewards",
+    page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -111,6 +113,20 @@ def inject_custom_styles():
             color: {SystemConfig.PRIMARY_COLOR} !important;
             background: rgba(255, 215, 0, 0.1) !important;
         }}
+        
+        /* Specialized Checkout Button */
+        .checkout-btn>button {{
+            background-color: {SystemConfig.ACCENT_COLOR} !important;
+            color: #000 !important;
+            font-size: 20px !important;
+            height: 70px !important;
+            border: none !important;
+        }}
+        
+        .checkout-btn>button:hover {{
+            background-color: #fff !important;
+            box-shadow: 0 0 20px rgba(127, 255, 0, 0.5) !important;
+        }}
 
         /* Login Input Styling */
         .stTextInput>div>div>input {{
@@ -129,7 +145,33 @@ def inject_custom_styles():
             box-shadow: 0 0 10px rgba(127, 255, 0, 0.3) !important;
         }}
 
-        /* Tier Box Styling */
+        /* Receipt/Cart Styling */
+        .receipt-container {{
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 30px;
+            font-family: 'JetBrains Mono', monospace;
+        }}
+        
+        .receipt-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }}
+        
+        .receipt-total {{
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #444;
+            font-size: 24px;
+            font-weight: bold;
+            color: {SystemConfig.PRIMARY_COLOR};
+        }}
+
         .tier-box {{
             background: #111;
             border: 1px solid #333;
@@ -151,25 +193,27 @@ def inject_custom_styles():
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. STATE, TIER LOGIC & DATABASE
+# 3. STATE, COMMERCE LOGIC & DATABASE
 # ==========================================
 def initialize_session():
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
     if 'phone_number' not in st.session_state:
         st.session_state.phone_number = ""
-    # REWARDS START AT ZERO
     if 'reward_points' not in st.session_state:
         st.session_state.reward_points = 0 
+    
+    # NEW: The Commerce Cart
+    if 'cart' not in st.session_state:
+        st.session_state.cart = [] # List of dictionaries
 
 def get_tier_info(pts):
-    """The Dynamic Gamification Engine"""
     if pts < 100:
         return "POBLANO 🫑", 100, "JALAPEÑO 🌶️"
     elif pts < 300:
         return "JALAPEÑO 🌶️", 300, "HABANERO 🔥"
     else:
-        return "HABANERO 🔥", 1000, "EL REY 👑" # Max theoretical tier
+        return "HABANERO 🔥", 1000, "EL REY 👑" 
 
 def load_master_menu():
     return {
@@ -198,7 +242,8 @@ def load_master_menu():
             {"id": "D2", "name": "Top Shelf Margarita", "desc": "Patrón Silver, Grand Marnier, fresh lime.", "price": 13.00},
             {"id": "D3", "name": "Spicy Mango Rita", "desc": "Tequila, mango purée, fresh jalapeño, Tajín rim.", "price": 10.50},
         ],
-        "Rewards 👑": []
+        "Rewards 👑": [],
+        "Checkout 🛒": [] # NEW: The Cart Tab
     }
 
 # ==========================================
@@ -216,7 +261,6 @@ def render_login_screen():
         
         st.markdown(f"<h4 style='text-align:center; color:#888; margin-bottom: 20px;'>ENTER PHONE NUMBER TO UNLOCK</h4>", unsafe_allow_html=True)
         
-        # Frictionless Gate: Removed Button
         phone_input = st.text_input("PHONE", placeholder="10-DIGIT NUMBER", label_visibility="collapsed", max_chars=10)
         st.markdown("<p style='text-align:center; color:#555; font-size:12px;'>Press ENTER to authenticate</p>", unsafe_allow_html=True)
         
@@ -237,17 +281,22 @@ def render_main_os():
         except:
             st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
 
-    # Dynamic Tier Math
+    # Dynamic Math (Tier & Cart)
     pts = st.session_state.reward_points
     current_tier, target, next_tier = get_tier_info(pts)
     progress_percentage = min(int((pts / target) * 100), 100)
     pts_away = target - pts
+    
+    # Calculate current cart total for the status bar
+    cart_items = len(st.session_state.cart)
+    cart_subtotal = sum(item['price'] for item in st.session_state.cart)
 
-    # Customer-Facing Status Bar
+    # Customer-Facing Status Bar (Now with Live Cart Data)
     st.markdown(f"""
         <div class="status-engine">
             <div class="status-header">
                 <span style="color: {SystemConfig.PRIMARY_COLOR};">TIER: {current_tier}</span>
+                <span style="color: #fff;">CART: {cart_items} ITEMS | ${cart_subtotal:.2f}</span>
                 <span>MEMBER: {st.session_state.phone_number}</span>
             </div>
             <div style="width: 100%; background-color: #222; height: 12px; border-radius: 6px; margin-bottom: 5px; overflow: hidden; border: 1px solid #333;">
@@ -263,13 +312,12 @@ def render_main_os():
     selected_category = pills("Navigation", list(menu.keys()), index=0)
 
     # ==========================================
-    # REWARDS PORTAL (Receipt Scanner & Overview)
+    # 5a. REWARDS PORTAL
     # ==========================================
     if selected_category == "Rewards 👑":
         st.markdown(f"<h2 style='color: {SystemConfig.PRIMARY_COLOR}; text-align: center;'>LA REINA LOYALTY TIERS</h2>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # Tier Visuals
         t1, t2, t3 = st.columns(3)
         with t1:
             st.markdown("""
@@ -297,22 +345,80 @@ def render_main_os():
             """, unsafe_allow_html=True)
             
         st.markdown("<hr style='border-color: #333;'>", unsafe_allow_html=True)
-        
-        # Receipt Scanner Integration
         st.markdown("<h3 style='text-align: center;'>📸 SCAN RECEIPT FOR POINTS</h3>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: #888;'>Align your receipt barcode or QR code in the frame below.</p>", unsafe_allow_html=True)
         
         receipt_img = st.camera_input("Scan Receipt", label_visibility="collapsed")
         
         if receipt_img:
-            # Simulated Processing Time & Point Award
             st.success("Receipt successfully scanned! Processing transaction...")
-            st.session_state.reward_points += 45 # Mock point boost
-            st.balloons() # Gamification reward
+            st.session_state.reward_points += 45 
+            st.balloons() 
             st.rerun()
 
     # ==========================================
-    # MENU ENGINE
+    # 5b. CHECKOUT PORTAL (The Transaction Engine)
+    # ==========================================
+    elif selected_category == "Checkout 🛒":
+        st.markdown(f"<h2 style='color: {SystemConfig.PRIMARY_COLOR}; text-align: center;'>YOUR TRAY</h2>", unsafe_allow_html=True)
+        
+        if len(st.session_state.cart) == 0:
+            st.info("Your tray is empty. Navigate to the menu to add items.")
+        else:
+            _, col, _ = st.columns([1, 2, 1])
+            with col:
+                st.markdown("<div class='receipt-container'>", unsafe_allow_html=True)
+                
+                # Render Cart Items
+                for i, item in enumerate(st.session_state.cart):
+                    st.markdown(f"""
+                        <div class="receipt-row">
+                            <span>{item['name']}</span>
+                            <span>${item['price']:.2f}</span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                # Render Math
+                tax = cart_subtotal * SystemConfig.TAX_RATE
+                total = cart_subtotal + tax
+                
+                st.markdown(f"""
+                    <div style="margin-top: 15px; color: #888; font-size: 16px;">
+                        <div class="receipt-row"><span>Subtotal:</span><span>${cart_subtotal:.2f}</span></div>
+                        <div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div>
+                    </div>
+                    <div class="receipt-total">
+                        <span>TOTAL:</span>
+                        <span>${total:.2f}</span>
+                    </div>
+                </div><br>
+                """, unsafe_allow_html=True)
+                
+                # The Execution Button
+                st.markdown("<div class='checkout-btn'>", unsafe_allow_html=True)
+                if st.button(f"PLACE ORDER (${total:.2f})", use_container_width=True):
+                    # Simulate sending to kitchen & processing payment
+                    order_num = random.randint(1000, 9999)
+                    
+                    # Award final points based on total spent
+                    points_earned = int(cart_subtotal)
+                    st.session_state.reward_points += points_earned
+                    
+                    # Clear the cart
+                    st.session_state.cart = []
+                    
+                    st.success(f"ORDER #{order_num} CONFIRMED! Sent to kitchen.")
+                    st.toast(f"Transaction complete. +{points_earned} Points added to your account!")
+                    st.balloons()
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+                if st.button("Clear Cart", type="secondary"):
+                    st.session_state.cart = []
+                    st.rerun()
+
+    # ==========================================
+    # 5c. MENU ENGINE
     # ==========================================
     elif selected_category:
         items = menu[selected_category]
@@ -332,14 +438,14 @@ def render_main_os():
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Renamed from FIRE to ADD + Item Name
+                    # ADD TO CART Logic
                     if st.button(f"+ ADD {item['name']}", key=f"btn_{item['id']}"):
-                        st.session_state.reward_points += int(float(item['price']))
-                        st.toast(f"Added {item['name']} to your tray! Earned points.")
+                        st.session_state.cart.append(item)
+                        st.toast(f"Added {item['name']} to your tray!")
                         st.rerun() 
 
 # ==========================================
-# 5. ROUTER
+# 6. ROUTER
 # ==========================================
 def main():
     initialize_session()
