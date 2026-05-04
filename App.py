@@ -172,6 +172,12 @@ def inject_custom_styles():
             color: {SystemConfig.PRIMARY_COLOR};
         }}
 
+        /* Order Type Radio Button Centering */
+        div[role="radiogroup"] {{
+            justify-content: center;
+            margin-bottom: 20px;
+        }}
+
         .tier-box {{
             background: #111;
             border: 1px solid #333;
@@ -202,10 +208,11 @@ def initialize_session():
         st.session_state.phone_number = ""
     if 'reward_points' not in st.session_state:
         st.session_state.reward_points = 0 
-    
-    # NEW: The Commerce Cart
     if 'cart' not in st.session_state:
-        st.session_state.cart = [] # List of dictionaries
+        st.session_state.cart = [] 
+    # NEW: Order Type State Tracking
+    if 'order_type' not in st.session_state:
+        st.session_state.order_type = "DINE-IN 🍽️"
 
 def get_tier_info(pts):
     if pts < 100:
@@ -243,7 +250,7 @@ def load_master_menu():
             {"id": "D3", "name": "Spicy Mango Rita", "desc": "Tequila, mango purée, fresh jalapeño, Tajín rim.", "price": 10.50},
         ],
         "Rewards 👑": [],
-        "Checkout 🛒": [] # NEW: The Cart Tab
+        "Checkout 🛒": [] 
     }
 
 # ==========================================
@@ -281,17 +288,15 @@ def render_main_os():
         except:
             st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR};'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
 
-    # Dynamic Math (Tier & Cart)
+    # Dynamic Math
     pts = st.session_state.reward_points
     current_tier, target, next_tier = get_tier_info(pts)
     progress_percentage = min(int((pts / target) * 100), 100)
     pts_away = target - pts
-    
-    # Calculate current cart total for the status bar
     cart_items = len(st.session_state.cart)
     cart_subtotal = sum(item['price'] for item in st.session_state.cart)
 
-    # Customer-Facing Status Bar (Now with Live Cart Data)
+    # Customer-Facing Status Bar
     st.markdown(f"""
         <div class="status-engine">
             <div class="status-header">
@@ -357,7 +362,7 @@ def render_main_os():
             st.rerun()
 
     # ==========================================
-    # 5b. CHECKOUT PORTAL (The Transaction Engine)
+    # 5b. CHECKOUT PORTAL (Now with Dine-In/To-Go Routing)
     # ==========================================
     elif selected_category == "Checkout 🛒":
         st.markdown(f"<h2 style='color: {SystemConfig.PRIMARY_COLOR}; text-align: center;'>YOUR TRAY</h2>", unsafe_allow_html=True)
@@ -369,7 +374,6 @@ def render_main_os():
             with col:
                 st.markdown("<div class='receipt-container'>", unsafe_allow_html=True)
                 
-                # Render Cart Items
                 for i, item in enumerate(st.session_state.cart):
                     st.markdown(f"""
                         <div class="receipt-row">
@@ -378,7 +382,6 @@ def render_main_os():
                         </div>
                     """, unsafe_allow_html=True)
                 
-                # Render Math
                 tax = cart_subtotal * SystemConfig.TAX_RATE
                 total = cart_subtotal + tax
                 
@@ -394,20 +397,31 @@ def render_main_os():
                 </div><br>
                 """, unsafe_allow_html=True)
                 
-                # The Execution Button
+                # --- NEW ORDER ROUTING TOGGLE ---
+                st.markdown("<div style='text-align: center; color: #888; font-weight: bold; letter-spacing: 1px; margin-bottom: 5px;'>ORDER DESTINATION</div>", unsafe_allow_html=True)
+                
+                st.session_state.order_type = st.radio(
+                    "Order Type", 
+                    ["DINE-IN 🍽️", "TO-GO 🛍️"], 
+                    horizontal=True, 
+                    label_visibility="collapsed",
+                    index=0 if st.session_state.order_type == "DINE-IN 🍽️" else 1
+                )
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                # --------------------------------
+                
                 st.markdown("<div class='checkout-btn'>", unsafe_allow_html=True)
-                if st.button(f"PLACE ORDER (${total:.2f})", use_container_width=True):
-                    # Simulate sending to kitchen & processing payment
+                if st.button(f"PLACE {st.session_state.order_type} ORDER (${total:.2f})", use_container_width=True):
                     order_num = random.randint(1000, 9999)
-                    
-                    # Award final points based on total spent
                     points_earned = int(cart_subtotal)
                     st.session_state.reward_points += points_earned
                     
-                    # Clear the cart
+                    # Capture the order type before clearing the cart
+                    final_type = st.session_state.order_type
                     st.session_state.cart = []
                     
-                    st.success(f"ORDER #{order_num} CONFIRMED! Sent to kitchen.")
+                    st.success(f"ORDER #{order_num} CONFIRMED FOR {final_type}! Sent to kitchen.")
                     st.toast(f"Transaction complete. +{points_earned} Points added to your account!")
                     st.balloons()
                     st.rerun()
@@ -438,7 +452,6 @@ def render_main_os():
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # ADD TO CART Logic
                     if st.button(f"+ ADD {item['name']}", key=f"btn_{item['id']}"):
                         st.session_state.cart.append(item)
                         st.toast(f"Added {item['name']} to your tray!")
