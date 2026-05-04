@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import random
 import time
 import json
@@ -7,7 +8,7 @@ import datetime
 from streamlit_autorefresh import st_autorefresh
 
 # ==========================================
-# 1. DATABASE ENGINE (MERGED & BULLETPROOF)
+# 1. DATABASE ENGINE
 # ==========================================
 class SystemConfig:
     RESTAURANT_NAME = "La Reina"
@@ -15,7 +16,7 @@ class SystemConfig:
     ACCENT_COLOR = "#7FFF00"   # Poblano Green
     BG_COLOR = "#000000"       # Deep Black
     LOGO_PATH = "la_reina_dark.png" 
-    TAX_RATE = 0.085           # 8.5% Tax
+    TAX_RATE = 0.085           
     DB_FILE = "la_reina_db.json"      
     SALES_DB = "la_reina_sales.json"  
     ADMIN_CODE = "9999999999"         
@@ -43,7 +44,7 @@ def update_user_points(phone_number, points_to_add):
         save_db(db)
         st.session_state.reward_points = db[phone_number]["points"]
 
-def log_transaction(order_num, order_type, cart_items, total_price):
+def log_transaction(order_num, order_type, cart_items, total_price, phone_number):
     sales = []
     if os.path.exists(SystemConfig.SALES_DB):
         with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
@@ -51,6 +52,7 @@ def log_transaction(order_num, order_type, cart_items, total_price):
     new_order = {
         "order_id": order_num,
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "phone": phone_number,
         "type": order_type,
         "items": [item['name'] for item in cart_items],
         "total": total_price,
@@ -91,7 +93,6 @@ def inject_styles():
         .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
         
-        /* STATUS ENGINE & GRID */
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
@@ -101,7 +102,6 @@ def inject_styles():
         .active-tab > div > button {{ background-color: #D32F2F !important; color: white !important; border: none !important; }}
         .active-reserva > div > button {{ background-color: #4A0404 !important; color: {SystemConfig.PRIMARY_COLOR} !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
-        /* MENU & MANIFEST */
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
@@ -112,16 +112,15 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
         
-        /* PAYMENTS */
         .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
         .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; }}
 
-        /* KDS STATION & ADMIN */
-        .kds-card {{ background-color: #080808; border-left: 10px solid {SystemConfig.PRIMARY_COLOR}; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; }}
+        .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
         .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
         .kds-dine-in {{ background-color: #2E7D32; color: white; }}
         .kds-to-go {{ background-color: #D32F2F; color: white; }}
-        .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
+        .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
+        .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
         .ticket-items {{ font-size: 1.5rem; color: #FFF; margin-top: 20px; line-height: 1.5; }}
 
         .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
@@ -129,16 +128,40 @@ def inject_styles():
         
         footer {{visibility: hidden;}} #MainMenu {{visibility: hidden;}}
         </style>
-
-        <script>
-        document.addEventListener('keydown', function(e) {{
-            if (e.code === 'Space') {{
-                const bumpBtn = window.parent.document.querySelector('button[kind="primary"]');
-                if (bumpBtn) bumpBtn.click();
-            }}
-        }});
-        </script>
     """, unsafe_allow_html=True)
+
+# THE NEW JAVASCRIPT INJECTOR FOR THE KDS BUMP BAR
+def inject_kds_keyboard_hack():
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        // Check if we already injected this so we don't duplicate it
+        if (!doc.getElementById('kds-spacebar-hack')) {
+            const script = doc.createElement('script');
+            script.id = 'kds-spacebar-hack';
+            script.innerHTML = `
+                document.addEventListener('keydown', function(e) {
+                    // Ignore spacebar if user is typing in a text input
+                    if (e.target.tagName.toLowerCase() === 'input') return;
+                    
+                    if (e.code === 'Space' || e.key === ' ') {
+                        e.preventDefault(); // <-- STOPS THE SCREEN FROM SCROLLING DOWN
+                        const bumpBtn = document.querySelector('button[kind="primary"]');
+                        if (bumpBtn) {
+                            bumpBtn.click();
+                        }
+                    }
+                });
+            `;
+            doc.head.appendChild(script);
+        }
+        // Force the browser window to focus so it catches the keystrokes immediately
+        window.parent.focus();
+        </script>
+        """,
+        height=0, width=0
+    )
 
 # ==========================================
 # 3. MENU DATA & STATE LOGIC
@@ -184,18 +207,16 @@ def init_session():
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
 def process_order(payment_method, total_price):
-    # Simulated UX Delay
     with st.spinner(f"Initiating secure handshake with {payment_method}..."):
         time.sleep(1.5)
         st.toast(f"Payment of ${total_price:.2f} Authorized.")
         time.sleep(0.5)
 
     order_id = str(random.randint(1000, 9999))
-    
-    # Log directly to live JSON Database
     pts_earned = int(total_price)
     update_user_points(st.session_state.phone_number, pts_earned)
-    log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price)
+    
+    log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price, st.session_state.phone_number)
 
     st.session_state.cart = []
     st.success(f"Order #{order_id} sent to kitchen.")
@@ -306,6 +327,9 @@ def render_customer_os():
     st.markdown('</div>', unsafe_allow_html=True)
 
 def render_kds():
+    # Deploy the invisible Javascript Hack
+    inject_kds_keyboard_hack()
+
     _, logo_col, _ = st.columns([1, 1, 1])
     with logo_col: 
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
@@ -313,45 +337,74 @@ def render_kds():
             
     st.markdown("<hr style='border-color:#333; margin-top:0;'>", unsafe_allow_html=True)
     
-    # Read Live JSON Database
     all_sales = get_sales_data()
     live_tickets = [order for order in all_sales if order.get("status") == "PENDING"]
+    
+    dine_in_tickets = [t for t in live_tickets if "DINE-IN" in t['type']]
+    to_go_tickets = [t for t in live_tickets if "TO-GO" in t['type']]
     
     if not live_tickets:
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        # Spacebar targets the oldest ticket in the live JSON queue
-        if st.button("BUMP OLDEST (SPACE BAR)", type="primary", use_container_width=True):
+        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", type="primary", use_container_width=True):
             bump_kitchen_ticket(live_tickets[0]['order_id'])
             st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
-        cols = st.columns(3)
-        for i, order in enumerate(live_tickets):
-            with cols[i % 3]:
-                b_class = "kds-dine-in" if "DINE-IN" in order['type'] else "kds-to-go"
-                
-                # Tally up identical items
-                item_counts = {}
-                for item in order['items']:
-                    item_counts[item] = item_counts.get(item, 0) + 1
-                formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
+        col_dine, col_togo = st.columns(2)
+        
+        # 1. DINE-IN STATION
+        with col_dine:
+            st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 2px solid #2E7D32; padding-bottom: 10px;'>🍽️ DINE-IN EXPO</h3>", unsafe_allow_html=True)
+            if not dine_in_tickets:
+                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
+            else:
+                for order in dine_in_tickets:
+                    item_counts = {}
+                    for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
+                    formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
+                    phone_display = order.get('phone', 'UNKNOWN')
 
-                st.markdown(f"""
-                    <div class="kds-card">
-                        <div class="kds-badge {b_class}">{order['type']}</div>
-                        <div class="ticket-id">#{order['order_id']}</div>
-                        <div class="ticket-items">
-                            {'<br>'.join(formatted_items)}
+                    st.markdown(f"""
+                        <div class="kds-card" style="border-left-color: #2E7D32;">
+                            <div class="ticket-id">
+                                <span>#{order['order_id']}</span>
+                                <span class="ticket-phone">{phone_display}</span>
+                            </div>
+                            <div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div>
+                            <div class="ticket-items">{'<br>'.join(formatted_items)}</div>
                         </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button(f"DONE #{order['order_id']}", key=f"k_{order['order_id']}"): 
-                    bump_kitchen_ticket(order['order_id'])
-                    st.rerun()
+                    """, unsafe_allow_html=True)
+                    if st.button(f"DONE #{order['order_id']}", key=f"d_{order['order_id']}"): 
+                        bump_kitchen_ticket(order['order_id'])
+                        st.rerun()
+
+        # 2. TO-GO STATION
+        with col_togo:
+            st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 2px solid #D32F2F; padding-bottom: 10px;'>🛍️ TO-GO BAGGING</h3>", unsafe_allow_html=True)
+            if not to_go_tickets:
+                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
+            else:
+                for order in to_go_tickets:
+                    item_counts = {}
+                    for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
+                    formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
+                    phone_display = order.get('phone', 'UNKNOWN')
+
+                    st.markdown(f"""
+                        <div class="kds-card" style="border-left-color: #D32F2F;">
+                            <div class="ticket-id">
+                                <span>#{order['order_id']}</span>
+                                <span class="ticket-phone">{phone_display}</span>
+                            </div>
+                            <div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div>
+                            <div class="ticket-items">{'<br>'.join(formatted_items)}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"DONE #{order['order_id']}", key=f"t_{order['order_id']}"): 
+                        bump_kitchen_ticket(order['order_id'])
+                        st.rerun()
     
-    # Refresh screen to pull new JSON updates
     st_autorefresh(interval=10000, key="kds_refresh")
 
 def render_admin_os():
@@ -378,7 +431,8 @@ def render_admin_os():
     st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div class='admin-log-container'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
         sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
-        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
+        phone_display = order.get('phone', 'N/A')
+        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {phone_display} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st_autorefresh(interval=15000, key="admin_refresh")
 
