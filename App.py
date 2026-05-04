@@ -182,7 +182,6 @@ def init_session():
     if 'current_cat' not in st.session_state: st.session_state.current_cat = "Lunch Specials"
     if 'is_admin' not in st.session_state: st.session_state.is_admin = False
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
-    if 'kds_queue' not in st.session_state: st.session_state.kds_queue = []
 
 def process_order(payment_method, total_price):
     # Simulated UX Delay
@@ -192,17 +191,8 @@ def process_order(payment_method, total_price):
         time.sleep(0.5)
 
     order_id = str(random.randint(1000, 9999))
-    item_counts = {}
-    for item in st.session_state.cart:
-        item_counts[item['name']] = item_counts.get(item['name'], 0) + 1
-    kds_item_list = [f"{count}x {name}" for name, count in item_counts.items()]
-
-    st.session_state.kds_queue.append({
-        "id": order_id,
-        "type": st.session_state.order_type,
-        "items": kds_item_list
-    })
-
+    
+    # Log directly to live JSON Database
     pts_earned = int(total_price)
     update_user_points(st.session_state.phone_number, pts_earned)
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price)
@@ -212,12 +202,6 @@ def process_order(payment_method, total_price):
     st.balloons()
     time.sleep(2)
     st.rerun()
-
-def complete_kds_ticket(index, order_id):
-    if st.session_state.kds_queue:
-        st.session_state.kds_queue.pop(index)
-        bump_kitchen_ticket(order_id)
-        st.rerun()
 
 # ==========================================
 # 4. USER INTERFACES
@@ -329,20 +313,45 @@ def render_kds():
             
     st.markdown("<hr style='border-color:#333; margin-top:0;'>", unsafe_allow_html=True)
     
-    if not st.session_state.kds_queue:
+    # Read Live JSON Database
+    all_sales = get_sales_data()
+    live_tickets = [order for order in all_sales if order.get("status") == "PENDING"]
+    
+    if not live_tickets:
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
+        # Spacebar targets the oldest ticket in the live JSON queue
         if st.button("BUMP OLDEST (SPACE BAR)", type="primary", use_container_width=True):
-            complete_kds_ticket(0, st.session_state.kds_queue[0]['id'])
+            bump_kitchen_ticket(live_tickets[0]['order_id'])
+            st.rerun()
 
         st.markdown("<br>", unsafe_allow_html=True)
         cols = st.columns(3)
-        for i, order in enumerate(st.session_state.kds_queue):
+        for i, order in enumerate(live_tickets):
             with cols[i % 3]:
                 b_class = "kds-dine-in" if "DINE-IN" in order['type'] else "kds-to-go"
-                st.markdown(f"""<div class="kds-card"><div class="kds-badge {b_class}">{order['type']}</div><div class="ticket-id">#{order['id']}</div><div class="ticket-items">{'<br>'.join(order['items'])}</div></div>""", unsafe_allow_html=True)
-                if st.button(f"DONE #{order['id']}", key=f"k_{order['id']}"): complete_kds_ticket(i, order['id'])
+                
+                # Tally up identical items
+                item_counts = {}
+                for item in order['items']:
+                    item_counts[item] = item_counts.get(item, 0) + 1
+                formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
+
+                st.markdown(f"""
+                    <div class="kds-card">
+                        <div class="kds-badge {b_class}">{order['type']}</div>
+                        <div class="ticket-id">#{order['order_id']}</div>
+                        <div class="ticket-items">
+                            {'<br>'.join(formatted_items)}
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if st.button(f"DONE #{order['order_id']}", key=f"k_{order['order_id']}"): 
+                    bump_kitchen_ticket(order['order_id'])
+                    st.rerun()
     
+    # Refresh screen to pull new JSON updates
     st_autorefresh(interval=10000, key="kds_refresh")
 
 def render_admin_os():
