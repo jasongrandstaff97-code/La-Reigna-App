@@ -1,6 +1,5 @@
 import streamlit as st
 import streamlit.components.v1 as components
-import random
 import time
 import json
 import os
@@ -8,7 +7,7 @@ import datetime
 from streamlit_autorefresh import st_autorefresh
 
 # ==========================================
-# 1. DATABASE ENGINE & SYSTEM CONFIG
+# 1. DATABASE ENGINE
 # ==========================================
 class SystemConfig:
     RESTAURANT_NAME = "la Reina Margaritas"
@@ -20,8 +19,6 @@ class SystemConfig:
     TAX_RATE = 0.085           
     DB_FILE = "la_reina_db.json"      
     SALES_DB = "la_reina_sales.json"  
-
-st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
 
 def load_db():
     if os.path.exists(SystemConfig.DB_FILE):
@@ -48,12 +45,10 @@ def update_user_points(phone_number, points_to_add):
         st.session_state.reward_points = db[phone_number]["points"]
 
 def log_transaction(order_num, order_type, cart_items, total_price, phone_number):
-    sales = []
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
+    sales = get_sales_data()
     new_order = {
         "order_id": order_num, 
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p"),
         "phone": phone_number if phone_number else "GUEST", 
         "type": order_type,
         "items": [item['name'] for item in cart_items], 
@@ -69,72 +64,82 @@ def get_sales_data():
     return []
 
 def bump_kitchen_ticket(order_id):
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
-        for order in sales:
-            if order["order_id"] == order_id:
-                order["status"] = "COMPLETED"
-                break
-        with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
+    sales = get_sales_data()
+    for order in sales:
+        if order["order_id"] == order_id:
+            order["status"] = "COMPLETED"
+            break
+    with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. THE HIGH-VELOCITY UI ENGINE (CSS)
+# 2. SYSTEM CONFIG & STYLES (Mobile-Native UI)
 # ==========================================
+st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
+
 def inject_styles():
+    is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
+    padding = "0.5rem 0.2rem" if is_mobile else "3rem 5rem"
+    max_width = "100%" if is_mobile else "1200px"
+
     st.markdown(f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
-        /* THE NATIVE MOBILE ZOOM OVERRIDE */
+        /* EDGE-TO-EDGE VIEWPORT */
         [data-testid="stAppViewBlockContainer"] {{
-            padding-top: 1rem !important;
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            padding-bottom: 0rem !important;
-            max-width: 100% !important;
+            padding: {padding} !important;
+            max-width: {max_width} !important;
+            width: 100vw !important;
+            background-color: #0E1117;
+            font-family: 'JetBrains Mono', monospace;
         }}
         
-        .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
-        header, footer, [data-testid="stSidebarNav"] {{ visibility: hidden; display: none; }}
-        
-        /* THE NATIVE INPUT BAR */
-        div[data-baseweb="input"] {{ background-color: #111 !important; border: 2px solid #333 !important; border-radius: 12px !important; margin-bottom: 20px; padding: 10px !important; }}
-        div[data-baseweb="input"] input {{ color: {SystemConfig.PRIMARY_COLOR} !important; font-size: 3rem !important; letter-spacing: 15px !important; text-align: center !important; font-weight: 900 !important; -webkit-text-fill-color: {SystemConfig.PRIMARY_COLOR} !important; height: 5rem !important; }}
-        div[data-baseweb="input"] input:focus {{ border-color: {SystemConfig.PURPLE_GLOW} !important; box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important; }}
+        /* NATIVE INPUT BAR (Forces phone keypad) */
+        input {{
+            font-size: 2.5rem !important;
+            text-align: center !important;
+            height: 5rem !important;
+            background-color: #1A1A1A !important;
+            color: {SystemConfig.PRIMARY_COLOR} !important;
+            border: 2px solid #333 !important;
+            border-radius: 12px !important;
+            margin-bottom: 1rem !important;
+        }}
+        input:focus {{
+            border-color: {SystemConfig.PURPLE_GLOW} !important;
+            box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important;
+            outline: none !important;
+        }}
 
-        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
-        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
-        
         /* MASSIVE UNIVERSAL BUTTONS */
         div.stButton > button {{ 
             width: 100%; 
-            height: 80px !important; 
-            background-color: #1A1A1A !important; 
-            border: 2px solid #333 !important; 
+            height: 75px !important; 
+            background-color: #111 !important; 
+            border: 2px solid #444 !important; 
             color: #FFF !important; 
             border-radius: 15px !important; 
             font-weight: 800 !important; 
             text-transform: uppercase; 
             transition: 0.1s ease-in-out; 
-            font-size: 1.3rem !important; 
+            font-size: 1.2rem !important; 
         }}
         
-        /* THE ISOLATED PURPLE ACTION ZONE */
-        #action-grid div.stButton > button:active, 
-        #action-grid div.stButton > button:focus, 
-        .active-tab > div > button,
-        div.stButton>button[key="btn_place_order"] {{ 
+        /* UNIVERSAL PURPLE ACTION ZONE */
+        div.stButton > button:active, 
+        .active-tab > div > button {{ 
             background-color: {SystemConfig.PURPLE_GLOW} !important; 
             color: white !important; 
-            border: 2px solid #9370DB !important; 
+            border: 2px solid #9D50BB !important; 
             box-shadow: 0 0 25px rgba(106, 13, 173, 0.9) !important; 
             transform: scale(0.96) !important; 
         }}
         
         /* VIP RESERVA LOCK */
-        .active-reserva > div > button {{ background-color: {SystemConfig.PRIMARY_COLOR} !important; color: black !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; box-shadow: 0 0 20px {SystemConfig.PRIMARY_COLOR} !important; }}
+        .active-reserva > div > button {{ background-color: {SystemConfig.PRIMARY_COLOR} !important; color: black !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
-        .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
+        /* MENU & MANIFEST CARDS */
+        .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
         .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
         .price-tag {{ font-size: 20px; font-weight: 700; color: #FFF; }}
@@ -144,24 +149,27 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
-        .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
-        .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
+        /* KDS TICKET CARDS */
+        .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; border-left: 10px solid #333; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
+        .ticket-id {{ font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
         .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
-        .ticket-items {{ font-size: 1.5rem; color: #FFF; margin-top: 20px; line-height: 1.5; }}
+        .ticket-items {{ font-size: 1.6rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
 
-        .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
-        .metric-box {{ background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333; }}
-        
-        /* LOGO SCALING */
-        .stImage > img {{ width: 100% !important; max-width: 450px; margin: 0 auto; display: block; }}
+        /* REWARDS ENGINE */
+        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
+        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
+
+        /* HIDE CLUTTER */
+        footer, header, [data-testid="stSidebarNav"] {{ display: none !important; }}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
+    # Looks for the PRIMARY button (which we assign ONLY to the "Bump Newest" button)
     components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
-# 3. MENU DATA 
+# 3. MENU DATA (100% COMPLETE & INTACT)
 # ==========================================
 def get_master_menu():
     return {
@@ -239,7 +247,8 @@ def get_tier_info(pts):
     else: return "HABANERO 🔥", 10000, "EL REY", "#D4AF37"
 
 def init_session():
-    if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
+    if 'view_mode' not in st.session_state: st.session_state.view_mode = "kds" # Default to KDS
+    if 'layout_mode' not in st.session_state: st.session_state.layout_mode = "Mobile"
     if 'cart' not in st.session_state: st.session_state.cart = []
     if 'current_cat' not in st.session_state: st.session_state.current_cat = "Appetizers"
     if 'phone_number' not in st.session_state: st.session_state.phone_number = "STAFF"
@@ -249,7 +258,11 @@ def process_order(payment_method, total_price):
     with st.spinner(f"Initiating Order Sequence..."):
         time.sleep(0.5)
         st.toast(f"Total ${total_price:.2f} Confirmed.")
-    order_id = str(random.randint(1000, 9999))
+    
+    # 001, 002 FORMATTING LOGIC
+    sales = get_sales_data()
+    order_id = f"{len(sales) + 1:03}" 
+    
     pts_earned = int(total_price)
     update_user_points(st.session_state.phone_number, pts_earned)
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price, st.session_state.phone_number)
@@ -260,55 +273,43 @@ def process_order(payment_method, total_price):
     st.rerun()
 
 # ==========================================
-# 4. UNIFIED LOGIC ROUTER
+# 4. NATIVE MOBILE LOGIN ROUTER 
 # ==========================================
-def process_entry():
-    entry = st.session_state.kbd_input.strip()
-    if not entry: return
-    
-    # Check for System Partitions (6 Digits)
-    if len(entry) == 6:
-        if entry == "123789": 
-            st.session_state.view_mode = "admin"
-            st.session_state.kbd_input = ""
-            st.rerun()
-        elif entry == "222333": 
-            st.session_state.view_mode = "kds"
-            st.session_state.kbd_input = ""
-            st.rerun()
-        elif entry == "111222": 
-            st.session_state.view_mode = "ordering"
-            st.session_state.phone_number = "STAFF"
-            st.session_state.kbd_input = ""
-            st.rerun()
-            
-    # Check for Customer Identity (10 Digits)
-    elif len(entry) >= 10:
-        clean_num = entry[:10]
-        sync_user_data(clean_num)
-        st.session_state.phone_number = clean_num
-        st.session_state.view_mode = "ordering"
-        st.session_state.kbd_input = ""
-        st.rerun()
-
 def render_login():
-    try: st.image(SystemConfig.LOGO_PATH, use_container_width=False)
-    except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
-    
-    st.markdown("<h4 style='text-align:center; color:#888;'>Enter Number.</h4>", unsafe_allow_html=True)
-    
-    # NATIVE KEYBOARD OVERRIDE: Eliminates the on-screen buttons
-    st.text_input(
-        label="Enter Number",
-        key="kbd_input",
-        type="password",
-        placeholder="",
-        on_change=process_entry,
-        label_visibility="collapsed"
-    )
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+        
+        st.markdown("<h3 style='text-align:center; color:#FFF;'>Enter Number.</h3>", unsafe_allow_html=True)
+        
+        # Native Trigger: No clunky on-screen grid. Type password summons native numpad.
+        entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
+        
+        if entry:
+            if len(entry) == 6:
+                if entry == "123789": 
+                    st.session_state.view_mode = "admin"
+                    st.rerun()
+                elif entry == "222333": 
+                    st.session_state.view_mode = "kds"
+                    st.rerun()
+                elif entry == "111222": 
+                    st.session_state.view_mode = "ordering"
+                    st.session_state.phone_number = "STAFF"
+                    st.rerun()
+                else:
+                    st.error("Invalid Code")
+            elif len(entry) >= 10:
+                clean_num = entry[:10]
+                sync_user_data(clean_num)
+                st.session_state.phone_number = clean_num
+                st.session_state.view_mode = "ordering"
+                st.rerun()
 
 # ==========================================
-# 5. ORDERING PARTITION
+# 5. UNIFIED ORDERING UI (Rewards + Layout)
 # ==========================================
 def render_ordering_os():
     _, logo_col, _ = st.columns([1, 2, 1])
@@ -316,6 +317,7 @@ def render_ordering_os():
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
         except: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
+    # REWARDS INJECTION
     if st.session_state.phone_number == "STAFF":
         st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0;'>STAFF PORTAL: ATTACH REWARDS</h4></div>""", unsafe_allow_html=True)
         c_input = st.text_input("ENTER CUSTOMER 10-DIGIT NUMBER (Optional)", max_chars=10)
@@ -356,15 +358,14 @@ def render_ordering_os():
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
-    item_cols = st.columns(2)
-    for idx, item in enumerate(menu[st.session_state.current_cat]):
-        with item_cols[idx % 2]:
-            st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-            st.markdown('<div id="action-grid">', unsafe_allow_html=True)
-            if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
-                st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Render Items
+    for item in menu[st.session_state.current_cat]:
+        st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
+        if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
+            st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
 
+    # Cart Processing
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart: st.write("YOUR SELECTIONS WILL APPEAR HERE.")
     else:
@@ -378,13 +379,16 @@ def render_ordering_os():
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("PLACE ORDER", key="btn_place_order", use_container_width=True): process_order("In-Store POS", total)
+        # Using specific styling for the final place order button
+        st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.8rem !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }</style>""", unsafe_allow_html=True)
+        if st.button("FIRE TO KITCHEN", key="btn_place_order", use_container_width=True): 
+            process_order("In-Store POS", total)
             
     st.markdown('</div><br>', unsafe_allow_html=True)
     if st.button("Logout", key="btn_logout", type="secondary"): st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
 
 # ==========================================
-# 6. KDS PARTITION
+# 6. KDS UI (With LIFO Spacebar Hack)
 # ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
@@ -399,11 +403,25 @@ def render_kds():
     dine_in_tickets = [t for t in live_tickets if "DINE-IN" in t['type']]
     to_go_tickets = [t for t in live_tickets if "TO-GO" in t['type']]
     
-    if st.button("EXIT KDS", key="btn_exit_kds", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("EXIT KDS", key="btn_exit_kds", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    with c2:
+        if st.button("Toggle Desktop View"):
+            st.session_state.layout_mode = "Desktop" if st.session_state.layout_mode == "Mobile" else "Mobile"
+            st.rerun()
         
-    if not live_tickets: st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
+    if not live_tickets: 
+        st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", key="btn_bump", type="primary", use_container_width=True): bump_kitchen_ticket(live_tickets[0]['order_id']); st.rerun()
+        # LIFO BUMP: Bumps the NEWEST ticket added to the array (the last one)
+        newest_ticket = live_tickets[-1]
+        
+        # This button is explicitly marked type="primary" to be caught by the JS Spacebar Hack
+        if st.button(f"BUMP NEWEST OVERALL (#{newest_ticket['order_id']}) [SPACE BAR]", key="btn_bump_newest", type="primary", use_container_width=True): 
+            bump_kitchen_ticket(newest_ticket['order_id'])
+            st.rerun()
+            
         st.markdown("<br>", unsafe_allow_html=True)
         col_dine, col_togo = st.columns(2)
         with col_dine:
@@ -429,11 +447,18 @@ def render_kds():
     st_autorefresh(interval=10000, key="kds_refresh")
 
 # ==========================================
-# 7. ADMIN PARTITION
+# 7. ADMIN OS
 # ==========================================
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
-    if st.button("⬅ EXIT SECURE SESSION", key="btn_exit_admin", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("⬅ EXIT SECURE SESSION", key="btn_exit_admin", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    with col2:
+        if st.button("Toggle Desktop View"):
+            st.session_state.layout_mode = "Desktop" if st.session_state.layout_mode == "Mobile" else "Mobile"
+            st.rerun()
 
     sales_data = get_sales_data()
     if not sales_data: st.warning("No financial data found. The sales ledger is currently empty."); return
@@ -444,11 +469,11 @@ def render_admin_os():
     
     st.markdown("<br>", unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"<div class='metric-box'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_rev:.2f}</div></div>", unsafe_allow_html=True)
-    with m2: st.markdown(f"<div class='metric-box'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>{total_ords}</div></div>", unsafe_allow_html=True)
-    with m3: st.markdown(f"<div class='metric-box'><div style='color:#888;'>AVERAGE ORDER</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>${aov:.2f}</div></div>", unsafe_allow_html=True)
+    with m1: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_rev:.2f}</div></div>""", unsafe_allow_html=True)
+    with m2: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>{total_ords}</div></div>""", unsafe_allow_html=True)
+    with m3: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>AVERAGE ORDER</div><div style='font-size:2rem; font-weight:bold; color:#FFF;'>${aov:.2f}</div></div>""", unsafe_allow_html=True)
 
-    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div class='admin-log-container'>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div style='background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll;'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
         sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
         st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {order.get('phone', 'N/A')} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
@@ -456,15 +481,20 @@ def render_admin_os():
     st_autorefresh(interval=15000, key="admin_refresh")
 
 # ==========================================
-# 8. RUNTIME LOOP
+# 8. RUNTIME ROUTER
 # ==========================================
 def main():
     init_session()
     inject_styles()
-    if st.session_state.view_mode == "login": render_login()
-    elif st.session_state.view_mode == "kds": render_kds()
-    elif st.session_state.view_mode == "admin": render_admin_os()
-    else: render_ordering_os()
+    
+    if st.session_state.view_mode == "login": 
+        render_login()
+    elif st.session_state.view_mode == "kds": 
+        render_kds()
+    elif st.session_state.view_mode == "admin": 
+        render_admin_os()
+    else: 
+        render_ordering_os()
 
 if __name__ == "__main__":
     main()
