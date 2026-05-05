@@ -50,13 +50,9 @@ def log_transaction(order_num, order_type, cart_items, total_price, phone_number
     if os.path.exists(SystemConfig.SALES_DB):
         with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
     new_order = {
-        "order_id": order_num, 
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "phone": phone_number if phone_number else "GUEST", 
-        "type": order_type,
-        "items": [item['name'] for item in cart_items], 
-        "total": total_price, 
-        "status": "PENDING"
+        "order_id": order_num, "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "phone": phone_number if phone_number else "GUEST", "type": order_type,
+        "items": [item['name'] for item in cart_items], "total": total_price, "status": "PENDING"
     }
     sales.append(new_order)
     with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
@@ -76,9 +72,9 @@ def bump_kitchen_ticket(order_id):
         with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. SYSTEM CONFIG & STYLES (Massive UI Fixes)
+# 2. SYSTEM CONFIG & STYLES (Mobile Optimized)
 # ==========================================
-st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="centered", initial_sidebar_state="collapsed")
 
 def inject_styles():
     st.markdown(f"""
@@ -86,44 +82,31 @@ def inject_styles():
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
+        
+        /* RESTRICT MAX WIDTH FOR DESKTOP (Prevents stretched UI, creates Kiosk look) */
+        [data-testid="block-container"] {{ max-width: 800px !important; padding-top: 2rem !important; margin: 0 auto; }}
+
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
-        /* MASSIVE UNIVERSAL BUTTONS (For young and old) */
-        div.stButton > button {{ 
-            width: 100%; 
-            height: 75px !important; 
-            background-color: #111 !important; 
-            border: 2px solid #444 !important; 
-            color: #FFF !important; 
-            border-radius: 50px !important; 
-            font-weight: 800 !important; 
-            text-transform: uppercase; 
-            transition: 0.1s ease-in-out; 
-            font-size: 1.2rem !important; 
-        }}
+        /* MASSIVE UNIVERSAL BUTTONS */
+        div.stButton > button {{ width: 100%; height: 75px !important; background-color: #111 !important; border: 2px solid #444 !important; color: #FFF !important; border-radius: 50px !important; font-weight: 800 !important; text-transform: uppercase; transition: 0.1s ease-in-out; font-size: 1.2rem !important; }}
         
-        /* UNIVERSAL PURPLE ACTION ZONE (Every button highlights purple on touch) */
-        div.stButton > button:active, 
-        div.stButton > button:focus, 
-        .active-tab > div > button {{ 
-            background-color: {SystemConfig.PURPLE_GLOW} !important; 
-            color: white !important; 
-            border: 2px solid #9D50BB !important; 
-            box-shadow: 0 0 25px rgba(106, 13, 173, 0.9) !important; 
-            transform: scale(0.96) !important; 
-        }}
+        /* THE PURPLE ACTION ZONE (Triggers on press) */
+        div.stButton > button:active, div.stButton > button:focus, .active-tab > div > button {{ background-color: {SystemConfig.PURPLE_GLOW} !important; color: white !important; border: 2px solid #9D50BB !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.9) !important; transform: scale(0.96) !important; }}
         
-        /* VIP RESERVA LOCK */
         .active-reserva > div > button {{ background-color: {SystemConfig.PRIMARY_COLOR} !important; color: black !important; border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
         /* NATIVE MOBILE AUTO-SENSE */
         @media (max-width: 768px) {{
-            [data-testid="column"] {{ min-width: 30% !important; }}
-            div.stButton > button {{ font-size: 16px !important; height: 65px !important; }}
-            div[data-baseweb="input"] input {{ font-size: 2.2rem !important; letter-spacing: 5px !important; }}
-            .menu-card {{ min-height: 140px; padding: 15px; }}
-            .item-title {{ font-size: 18px; }}
+            /* Keep columns from stacking in the keypad/menus */
+            div[data-testid="stHorizontalBlock"] {{ flex-wrap: nowrap !important; gap: 0.5rem !important; }}
+            div[data-testid="column"] {{ min-width: 0 !important; flex: 1 1 0% !important; }}
+            
+            div.stButton > button {{ height: 65px !important; font-size: 1rem !important; padding: 0 !important; }}
+            .pin-display {{ font-size: 2.5rem !important; letter-spacing: 5px !important; margin-bottom: 10px !important; }}
+            .menu-card {{ min-height: 140px; padding: 15px; margin-bottom: 10px; }}
+            .item-title {{ font-size: 16px; }}
             .manifest-total {{ font-size: 20px; }}
         }}
 
@@ -137,29 +120,54 @@ def inject_styles():
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
-        .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
-        .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
-        .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
-        .ticket-items {{ font-size: 1.5rem; color: #FFF; margin-top: 20px; line-height: 1.5; }}
-
-        .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
-        .metric-box {{ background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333; }}
+        /* Clear Text Buffer */
+        .pin-display {{ text-align: center; font-size: 3.5rem; letter-spacing: 15px; height: 80px; color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; border-bottom: 2px solid #333; margin-bottom: 30px; line-height: 1; }}
         
-        /* PHYSICAL KEYBOARD INTEGRATION STYLING */
-        div[data-baseweb="input"] {{ background-color: #111 !important; border: 2px solid #333 !important; border-radius: 12px !important; margin-bottom: 20px; padding: 10px !important; }}
-        div[data-baseweb="input"] input {{ color: {SystemConfig.PRIMARY_COLOR} !important; font-size: 3rem !important; letter-spacing: 15px !important; text-align: center !important; font-weight: 900 !important; -webkit-text-fill-color: {SystemConfig.PRIMARY_COLOR} !important; }}
-        
-        div.stButton>button[key="btn_place_order"] {{ background-color: {SystemConfig.PURPLE_GLOW} !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.8rem !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }}
+        div.stButton>button[key="btn_place_order"] {{ background-color: {SystemConfig.PURPLE_GLOW} !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.5rem !important; height: 75px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }}
+        div.stButton>button[key="btn_place_order"]:active {{ transform: scale(0.97); }}
         
         footer {{visibility: hidden;}} #MainMenu {{visibility: hidden;}}
         </style>
     """, unsafe_allow_html=True)
 
-def inject_kds_keyboard_hack():
-    components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
+# THE GHOST KEYBOARD HACK (Zero Lag, No Text Input Boxes)
+def inject_hardware_listener():
+    components.html("""
+        <script>
+        const doc = window.parent.document;
+        if (!doc.getElementById('hardware-keyboard-hack')) {
+            const script = doc.createElement('script');
+            script.id = 'hardware-keyboard-hack';
+            script.innerHTML = `
+                document.addEventListener('keydown', function(e) {
+                    if (e.target.tagName.toLowerCase() === 'input') return;
+                    let key = e.key;
+                    if (key >= '0' && key <= '9') {
+                        const btns = Array.from(document.querySelectorAll('button'));
+                        const btn = btns.find(el => el.innerText.trim() === key);
+                        if (btn) btn.click();
+                    } else if (key === 'Backspace' || key === 'Delete') {
+                        const btns = Array.from(document.querySelectorAll('button'));
+                        const btn = btns.find(el => el.innerText.includes('⌫'));
+                        if (btn) btn.click();
+                    } else if (key === 'Escape' || key.toLowerCase() === 'c') {
+                        const btns = Array.from(document.querySelectorAll('button'));
+                        const btn = btns.find(el => el.innerText.trim() === 'CLR');
+                        if (btn) btn.click();
+                    } else if (key === 'Space' || key === ' ') {
+                        const bumpBtn = document.querySelector('button[kind="primary"]');
+                        if (bumpBtn) { e.preventDefault(); bumpBtn.click(); }
+                    }
+                });
+            `;
+            doc.head.appendChild(script);
+        }
+        window.parent.focus();
+        </script>
+    """, height=0, width=0)
 
 # ==========================================
-# 3. MENU DATA (100% COMPLETE & INTACT)
+# 3. MENU DATA 
 # ==========================================
 def get_master_menu():
     return {
@@ -243,7 +251,6 @@ def init_session():
     if 'buffer' not in st.session_state: st.session_state.buffer = ""
     if 'phone_number' not in st.session_state: st.session_state.phone_number = "STAFF"
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
-    if 'kbd_input' not in st.session_state: st.session_state.kbd_input = ""
 
 def process_order(payment_method, total_price):
     with st.spinner(f"Initiating Order Sequence..."):
@@ -260,93 +267,74 @@ def process_order(payment_method, total_price):
     st.rerun()
 
 # ==========================================
-# 4. STRICT LOGIC ROUTER & KEYBOARD SYNC
+# 4. STRICT 6/10 LOGIC ROUTER (Zero Traps)
 # ==========================================
-def process_entry(entry):
-    # If exactly 6 digits, check for staff logic. If not a staff code, let them keep typing.
+def process_entry():
+    entry = st.session_state.buffer
     if len(entry) == 6:
+        # If it's a staff/admin code, route instantly.
         if entry == "123789": 
-            st.session_state.view_mode = "admin"
-            st.session_state.buffer = ""; st.session_state.kbd_input = ""
-            st.rerun()
+            st.session_state.view_mode = "admin"; st.session_state.buffer = ""; st.rerun()
         elif entry == "222333": 
-            st.session_state.view_mode = "kds"
-            st.session_state.buffer = ""; st.session_state.kbd_input = ""
-            st.rerun()
+            st.session_state.view_mode = "kds"; st.session_state.buffer = ""; st.rerun()
         elif entry == "111222": 
-            st.session_state.view_mode = "ordering"
-            st.session_state.phone_number = "STAFF"
-            st.session_state.buffer = ""; st.session_state.kbd_input = ""
-            st.rerun()
-    # Once they hit 10 digits, it is automatically a customer account.
-    elif len(entry) >= 10:
-        clean_num = entry[:10]
-        sync_user_data(clean_num)
-        st.session_state.phone_number = clean_num
+            st.session_state.view_mode = "ordering"; st.session_state.phone_number = "STAFF"; st.session_state.buffer = ""; st.rerun()
+        # IMPORTANT: If it's NOT a staff code, we DO NOTHING here. We let the customer keep typing to 10.
+    elif len(entry) == 10:
+        # Full 10 digits reached. Route customer.
+        sync_user_data(entry)
+        st.session_state.phone_number = entry
         st.session_state.view_mode = "ordering"
-        st.session_state.buffer = ""; st.session_state.kbd_input = ""
+        st.session_state.buffer = ""
         st.rerun()
-
-def handle_keyboard_input():
-    # Sync the text_input to the session state buffer
-    clean_val = "".join(filter(str.isdigit, st.session_state.kbd_input))
-    st.session_state.buffer = clean_val
-    process_entry(st.session_state.buffer)
+    elif len(entry) > 10:
+        st.session_state.buffer = entry[:10]
 
 def render_login():
-    _, col, _ = st.columns([1, 1, 1])
-    with col:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
-        
-        st.markdown("<h4 style='text-align:center; color:#888;'>ENTER NUMBER (Tap or Type)</h4>", unsafe_allow_html=True)
-        
-        # VISIBLE, PHYSICAL KEYBOARD INPUT (Syncs with on-screen pad)
-        st.text_input("ENTER NUMBER", key="kbd_input", value=st.session_state.buffer, on_change=handle_keyboard_input, label_visibility="collapsed")
-        
-        # MASSIVE ON-SCREEN KEYPAD
-        rows = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]]
-        for row in rows:
-            r_cols = st.columns(3)
-            for i, num in enumerate(row):
-                if r_cols[i].button(num, key=f"pad_{num}"):
-                    st.session_state.buffer += num
-                    st.session_state.kbd_input = st.session_state.buffer
-                    process_entry(st.session_state.buffer)
-                    st.rerun()
-        
-        c1, c2, c3 = st.columns(3)
-        if c1.button("CLR"): st.session_state.buffer = ""; st.session_state.kbd_input = ""; st.rerun()
-        if c2.button("0"): 
-            st.session_state.buffer += "0"
-            st.session_state.kbd_input = st.session_state.buffer
-            process_entry(st.session_state.buffer)
-            st.rerun()
-        if c3.button("⌫"): 
-            st.session_state.buffer = st.session_state.buffer[:-1]
-            st.session_state.kbd_input = st.session_state.buffer
-            st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+    try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+    except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+    
+    st.markdown("<h4 style='text-align:center; color:#888; margin-top:20px;'>ENTER NUMBER</h4>", unsafe_allow_html=True)
+    
+    # MASSIVE CLEAR TEXT BUFFER (No asterisks)
+    display_text = st.session_state.buffer if st.session_state.buffer else "..."
+    st.markdown(f'<div class="pin-display">{display_text}</div>', unsafe_allow_html=True)
+    
+    # The Grid (Uses 100% of the centered container)
+    rows = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]]
+    for row in rows:
+        r_cols = st.columns(3)
+        for i, num in enumerate(row):
+            if r_cols[i].button(num, key=f"pad_{num}"):
+                st.session_state.buffer += num
+                process_entry()
+
+    c1, c2, c3 = st.columns(3)
+    if c1.button("CLR"): st.session_state.buffer = ""; st.rerun()
+    if c2.button("0"): 
+        st.session_state.buffer += "0"
+        process_entry()
+    if c3.button("⌫"): 
+        st.session_state.buffer = st.session_state.buffer[:-1]
+        st.rerun()
 
 # ==========================================
-# 5. UNIFIED ORDERING UI (Rewards Injection)
+# 5. UNIFIED ORDERING UI
 # ==========================================
 def render_ordering_os():
-    _, logo_col, _ = st.columns([1, 2, 1])
-    with logo_col: 
-        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
+    try: st.image(SystemConfig.LOGO_PATH, width=300)
+    except: st.markdown(f"<h2 style='color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
-    # EMPLOYEE REWARDS INJECTION LOGIC (Hides Poblano bar until a customer is attached)
+    # EMPLOYEE REWARDS INJECTION
     if st.session_state.phone_number == "STAFF":
-        st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0;'>STAFF PORTAL: ATTACH REWARDS</h4></div>""", unsafe_allow_html=True)
-        c_input = st.text_input("ENTER CUSTOMER 10-DIGIT NUMBER (Optional)", max_chars=10)
-        if st.button("ATTACH ACCOUNT", type="primary", key="btn_attach") and len(c_input) == 10:
+        st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:1px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0;'>STAFF: ATTACH CUSTOMER REWARDS</h4></div>""", unsafe_allow_html=True)
+        c_input = st.text_input("Enter 10-Digit Phone Number (Optional)", max_chars=10, key="staff_rewards_input")
+        if st.button("ATTACH ACCOUNT", type="primary") and len(c_input) == 10:
             sync_user_data(c_input)
             st.session_state.phone_number = c_input
             st.rerun()
     else:
-        # CUSTOMER ACTIVE: SHOW REWARDS BAR
         pts = st.session_state.get('reward_points', 0)
         tier, target, next_t, t_color = get_tier_info(pts)
         progress = min(int((pts / target) * 100), 100)
@@ -402,13 +390,12 @@ def render_ordering_os():
         if st.button("PLACE ORDER", key="btn_place_order", use_container_width=True): process_order("In-Store POS", total)
             
     st.markdown('</div><br>', unsafe_allow_html=True)
-    if st.button("Logout", key="btn_logout", type="secondary"): st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
+    if st.button("Logout", type="secondary"): st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
 
 # ==========================================
 # 6. KDS UI 
 # ==========================================
 def render_kds():
-    inject_kds_keyboard_hack()
     _, logo_col, _ = st.columns([1, 1, 1])
     with logo_col: 
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
@@ -420,11 +407,11 @@ def render_kds():
     dine_in_tickets = [t for t in live_tickets if "DINE-IN" in t['type']]
     to_go_tickets = [t for t in live_tickets if "TO-GO" in t['type']]
     
-    if st.button("EXIT KDS", key="btn_exit_kds", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    if st.button("EXIT KDS", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
         
     if not live_tickets: st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", key="btn_bump", type="primary", use_container_width=True): bump_kitchen_ticket(live_tickets[0]['order_id']); st.rerun()
+        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", type="primary", use_container_width=True): bump_kitchen_ticket(live_tickets[0]['order_id']); st.rerun()
         st.markdown("<br>", unsafe_allow_html=True)
         col_dine, col_togo = st.columns(2)
         with col_dine:
@@ -454,7 +441,7 @@ def render_kds():
 # ==========================================
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
-    if st.button("⬅ EXIT SECURE SESSION", key="btn_exit_admin", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
+    if st.button("⬅ EXIT SECURE SESSION", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
 
     sales_data = get_sales_data()
     if not sales_data: st.warning("No financial data found. The sales ledger is currently empty."); return
@@ -482,6 +469,8 @@ def render_admin_os():
 def main():
     init_session()
     inject_styles()
+    inject_hardware_listener()
+    
     if st.session_state.view_mode == "login": render_login()
     elif st.session_state.view_mode == "kds": render_kds()
     elif st.session_state.view_mode == "admin": render_admin_os()
