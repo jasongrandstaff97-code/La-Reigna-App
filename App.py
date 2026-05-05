@@ -11,15 +11,15 @@ from streamlit_autorefresh import st_autorefresh
 # 1. DATABASE ENGINE
 # ==========================================
 class SystemConfig:
-    RESTAURANT_NAME = "La Reina"
+    RESTAURANT_NAME = "la Reina Margaritas"
     PRIMARY_COLOR = "#D4AF37"  # Gold
     ACCENT_COLOR = "#7FFF00"   # Poblano Green
+    PURPLE_GLOW = "#6A0DAD"    # La Reina Royal Purple
     BG_COLOR = "#000000"       # Deep Black
     LOGO_PATH = "la_reina_dark.png" 
     TAX_RATE = 0.085           
     DB_FILE = "la_reina_db.json"      
     SALES_DB = "la_reina_sales.json"  
-    ADMIN_CODE = "9999999999"         
 
 def load_db():
     if os.path.exists(SystemConfig.DB_FILE):
@@ -77,13 +77,9 @@ def bump_kitchen_ticket(order_id):
         with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. SYSTEM CONFIG & STYLES (TRUE PILL CSS)
+# 2. SYSTEM CONFIG & STYLES
 # ==========================================
-st.set_page_config(
-    page_title=f"{SystemConfig.RESTAURANT_NAME} OS",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
 
 def inject_styles():
     st.markdown(f"""
@@ -103,22 +99,22 @@ def inject_styles():
             background-color: transparent !important; 
             border: 1px solid #444 !important; 
             color: #bbb !important; 
-            border-radius: 50px !important; /* Fully rounded capsule */
+            border-radius: 50px !important; 
             font-weight: 700 !important; 
             text-transform: uppercase; 
-            transition: 0.2s; 
+            transition: 0.15s; 
             font-size: 13px !important; 
         }}
-        .stButton>button:hover {{ 
-            border-color: {SystemConfig.PRIMARY_COLOR} !important; 
-            color: {SystemConfig.PRIMARY_COLOR} !important; 
-        }}
         
-        /* TRUE PILL LOGIC (ACTIVE HIGHLIGHT) */
+        /* THE PURPLE ACTION ZONE (Isolated to categories) */
+        #action-grid div.stButton > button:active, 
+        #action-grid div.stButton > button:focus,
         .active-tab > div > button {{ 
-            background-color: #FF4B4B !important; /* Vibrant Red */
+            background-color: {SystemConfig.PURPLE_GLOW} !important; 
             color: white !important; 
-            border: 1px solid #FF4B4B !important; 
+            border: 1px solid #9D50BB !important; 
+            box-shadow: 0 0 20px rgba(106, 13, 173, 0.8);
+            transform: scale(0.97);
         }}
         
         /* VIP RESERVA LOCK */
@@ -130,21 +126,9 @@ def inject_styles():
         
         /* THE MOBILE 3x3 GRID OVERRIDE */
         @media (max-width: 768px) {{
-            [data-testid="stHorizontalBlock"] {{
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                gap: 8px !important;
-            }}
-            [data-testid="column"] {{
-                width: 33% !important;
-                flex: 1 1 33% !important;
-                min-width: 30% !important;
-            }}
-            .stButton>button {{
-                font-size: 10px !important;
-                padding: 2px !important;
-                height: 50px !important;
-            }}
+            [data-testid="stHorizontalBlock"] {{ flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; }}
+            [data-testid="column"] {{ width: 33% !important; flex: 1 1 33% !important; min-width: 30% !important; }}
+            .stButton>button {{ font-size: 10px !important; padding: 2px !important; height: 50px !important; }}
         }}
 
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
@@ -156,12 +140,8 @@ def inject_styles():
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }}
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
-        
-        .apple-pay-btn > div > button {{ background-color: #FFFFFF !important; color: #000 !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; border-radius: 12px !important; }}
-        .google-pay-btn > div > button {{ background-color: #4285F4 !important; color: #FFF !important; border: none !important; height: 60px !important; font-size: 1.2rem !important; border-radius: 12px !important; }}
 
         .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
-        .kds-badge {{ padding: 6px 15px; border-radius: 4px; font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 15px; display: inline-block; }}
         .kds-dine-in {{ background-color: #2E7D32; color: white; }}
         .kds-to-go {{ background-color: #D32F2F; color: white; }}
         .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
@@ -170,6 +150,23 @@ def inject_styles():
 
         .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
         .metric-box {{ background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333; }}
+        
+        /* Keypad Styles */
+        .pin-display {{ text-align: center; font-size: 3rem; letter-spacing: 15px; height: 70px; color: {SystemConfig.PRIMARY_COLOR}; }}
+        
+        /* NEW: Massive "Place Order" Button Highlight */
+        div.stButton>button[key="btn_place_order"] {{
+            background-color: {SystemConfig.PURPLE_GLOW} !important;
+            color: #FFFFFF !important;
+            border: 2px solid #9D50BB !important;
+            font-size: 1.5rem !important;
+            height: 70px !important;
+            box-shadow: 0 0 25px rgba(106, 13, 173, 0.6);
+            margin-top: 10px;
+        }}
+        div.stButton>button[key="btn_place_order"]:active {{
+            transform: scale(0.97);
+        }}
         
         footer {{visibility: hidden;}} #MainMenu {{visibility: hidden;}}
         </style>
@@ -204,7 +201,7 @@ def inject_kds_keyboard_hack():
     )
 
 # ==========================================
-# 3. MENU DATA & STATE LOGIC
+# 3. MENU DATA (100% Intact)
 # ==========================================
 def get_master_menu():
     return {
@@ -285,13 +282,14 @@ def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'cart' not in st.session_state: st.session_state.cart = []
     if 'current_cat' not in st.session_state: st.session_state.current_cat = "Appetizers"
-    if 'is_admin' not in st.session_state: st.session_state.is_admin = False
+    if 'buffer' not in st.session_state: st.session_state.buffer = ""
+    if 'phone_number' not in st.session_state: st.session_state.phone_number = "STAFF"
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
 def process_order(payment_method, total_price):
-    with st.spinner(f"Initiating secure handshake with {payment_method}..."):
-        time.sleep(1.5)
-        st.toast(f"Payment of ${total_price:.2f} Authorized.")
+    with st.spinner(f"Initiating Order Sequence..."):
+        time.sleep(1.0)
+        st.toast(f"Total ${total_price:.2f} Confirmed.")
         time.sleep(0.5)
 
     order_id = str(random.randint(1000, 9999))
@@ -304,34 +302,70 @@ def process_order(payment_method, total_price):
     st.success(f"Order #{order_id} sent to kitchen.")
     st.balloons()
     time.sleep(2)
+    st.session_state.view_mode = "login"
     st.rerun()
 
 # ==========================================
-# 4. USER INTERFACES
+# 4. LOGIC ROUTER & KEYPAD
 # ==========================================
-def render_login():
-    _, col, _ = st.columns([1, 2, 1])
-    with col:
-        st.markdown("<br><br><br>", unsafe_allow_html=True)
-        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-weight:900;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
-            
-        st.markdown("<h4 style='text-align:center; color:#888;'>WELCOME. ENTER YOUR PHONE NUMBER.</h4>", unsafe_allow_html=True)
-        phone_input = st.text_input("PHONE", placeholder="417-000-0000", label_visibility="collapsed")
-        
-        if phone_input:
-            clean_key = "".join(filter(str.isdigit, phone_input))
-            if clean_key == "0112358132":
-                st.session_state.view_mode = "kds"
-                st.rerun()
-            elif len(clean_key) >= 10:
-                if clean_key == SystemConfig.ADMIN_CODE: st.session_state.is_admin = True
-                sync_user_data(clean_key)
-                st.session_state.view_mode = "customer"
-                st.session_state.phone_number = clean_key
-                st.rerun()
+def process_entry():
+    entry = st.session_state.buffer
+    # The "12" Employee Ultra-Fast Trigger
+    if len(entry) == 2 and entry == "12":
+        st.session_state.view_mode = "ordering"
+        st.session_state.phone_number = "STAFF"
+        st.session_state.buffer = ""
+    # The 6-Digit Partitions
+    elif len(entry) == 6:
+        if entry == "123789": st.session_state.view_mode = "admin"
+        elif entry == "222333": st.session_state.view_mode = "kds"
+        elif entry == "111222": st.session_state.view_mode = "ordering"
+        st.session_state.buffer = ""
+    # The 10-Digit Customer Identity
+    elif len(entry) == 10:
+        sync_user_data(entry)
+        st.session_state.phone_number = entry
+        st.session_state.view_mode = "ordering"
+        st.session_state.buffer = ""
 
-def render_customer_os():
+def render_login():
+    _, col, _ = st.columns([1, 1, 1])
+    with col:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
+        except Exception: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+        
+        st.markdown("<h4 style='text-align:center; color:#888;'>Enter Number.</h4>", unsafe_allow_html=True)
+        
+        masked_pin = "*" * len(st.session_state.buffer)
+        st.markdown(f'<div class="pin-display">{masked_pin}</div>', unsafe_allow_html=True)
+        
+        # High-Velocity Keypad
+        rows = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]]
+        for row in rows:
+            r_cols = st.columns(3)
+            for i, num in enumerate(row):
+                if r_cols[i].button(num, key=f"pad_{num}"):
+                    st.session_state.buffer += num
+                    process_entry()
+                    st.rerun()
+        
+        c1, c2, c3 = st.columns(3)
+        if c1.button("CLR"): 
+            st.session_state.buffer = ""
+            st.rerun()
+        if c2.button("0"): 
+            st.session_state.buffer += "0"
+            process_entry()
+            st.rerun()
+        if c3.button("⌫"): 
+            st.session_state.buffer = st.session_state.buffer[:-1]
+            st.rerun()
+
+# ==========================================
+# 5. UNIFIED ORDERING UI
+# ==========================================
+def render_ordering_os():
     _, logo_col, _ = st.columns([1, 2, 1])
     with logo_col: 
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
@@ -343,7 +377,7 @@ def render_customer_os():
 
     st.markdown(f"""
         <div class="status-engine" style="border-color: {t_color};">
-            <div class="status-header"><span style="color: {t_color};">{tier}</span><span>{pts} / {target} PTS</span></div>
+            <div class="status-header"><span style="color: {t_color};">{tier} | {st.session_state.phone_number}</span><span>{pts} / {target} PTS</span></div>
             <div style="width: 100%; background: #222; height: 8px; border-radius: 4px; overflow: hidden; margin-top:10px;">
                 <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
             </div>
@@ -353,13 +387,14 @@ def render_customer_os():
     menu = get_master_menu()
     categories = list(menu.keys())
     
-    # THE 3x3 GRID (WITH TRUE PILL UX INJECTION)
+    # THE ACTION GRID (PURPLE PULSE ENABLED)
+    st.markdown('<div id="action-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
     for i, cat in enumerate(categories):
         with cols[i % 3]:
             style_class = "active-tab" if cat == st.session_state.current_cat else ""
             if cat == "La Reserva":
-                if pts < 5000:
+                if pts < 5000 and st.session_state.phone_number != "STAFF":
                     st.button(f"🔒 {cat}", disabled=True, use_container_width=True)
                     continue
                 style_class = "active-reserva" if cat == st.session_state.current_cat else ""
@@ -369,6 +404,7 @@ def render_customer_os():
                 st.session_state.current_cat = cat
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
     
@@ -376,13 +412,13 @@ def render_customer_os():
     for idx, item in enumerate(menu[st.session_state.current_cat]):
         with item_cols[idx % 2]:
             st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-            # Add button styled to match the dark theme
             st.markdown("""<style>div.stButton>button[key^="add_"] { border-radius: 12px !important; background-color: #111 !important; color: #D4AF37 !important; border: 1px solid #333 !important; }</style>""", unsafe_allow_html=True)
             if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
                 st.session_state.cart.append(item)
                 st.toast(f"Added {item['name']}")
                 st.rerun()
 
+    # CHECKOUT MANIFEST
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart:
         st.write("YOUR SELECTIONS WILL APPEAR HERE.")
@@ -399,20 +435,22 @@ def render_customer_os():
         st.markdown("<br>", unsafe_allow_html=True)
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
+        # --- NEW: SINGLE "PLACE ORDER" BUTTON ---
         st.markdown("<br>", unsafe_allow_html=True)
-        p1, p2 = st.columns(2)
-        with p1: 
-            st.markdown('<div class="apple-pay-btn">', unsafe_allow_html=True)
-            if st.button(" Pay", key="ap_pay", use_container_width=True): process_order("Apple Pay", total)
-            st.markdown('</div>', unsafe_allow_html=True)
-        with p2:
-            st.markdown('<div class="google-pay-btn">', unsafe_allow_html=True)
-            if st.button("G Pay", key="gp_pay", use_container_width=True): process_order("Google Pay", total)
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        if st.button("CREDIT / DEBIT (MFA SECURED)", use_container_width=True): process_order("Saved Card", total)
+        if st.button("PLACE ORDER", key="btn_place_order", use_container_width=True): 
+            process_order("In-Store POS System", total)
+            
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Logout", type="secondary"):
+        st.session_state.cart = []
+        st.session_state.view_mode = "login"
+        st.rerun()
 
+# ==========================================
+# 6. KDS UI (100% Intact)
+# ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
 
@@ -429,6 +467,10 @@ def render_kds():
     dine_in_tickets = [t for t in live_tickets if "DINE-IN" in t['type']]
     to_go_tickets = [t for t in live_tickets if "TO-GO" in t['type']]
     
+    if st.button("EXIT KDS", type="secondary"):
+        st.session_state.view_mode = "login"
+        st.rerun()
+        
     if not live_tickets:
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
@@ -493,10 +535,13 @@ def render_kds():
     
     st_autorefresh(interval=10000, key="kds_refresh")
 
+# ==========================================
+# 7. ADMIN OS (100% Intact)
+# ==========================================
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
     if st.button("⬅ EXIT SECURE SESSION", type="secondary"):
-        st.session_state.is_admin = False
+        st.session_state.view_mode = "login"
         st.rerun()
 
     sales_data = get_sales_data()
@@ -523,7 +568,7 @@ def render_admin_os():
     st_autorefresh(interval=15000, key="admin_refresh")
 
 # ==========================================
-# 5. RUNTIME ROUTER
+# 8. RUNTIME ROUTER
 # ==========================================
 def main():
     init_session()
@@ -531,8 +576,8 @@ def main():
     
     if st.session_state.view_mode == "login": render_login()
     elif st.session_state.view_mode == "kds": render_kds()
-    elif st.session_state.is_admin: render_admin_os()
-    else: render_customer_os()
+    elif st.session_state.view_mode == "admin": render_admin_os()
+    else: render_ordering_os()
 
 if __name__ == "__main__":
     main()
