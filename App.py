@@ -84,23 +84,33 @@ def inject_styles():
     """, unsafe_allow_html=True)
 
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
-    padding = "1rem 0.5rem" if is_mobile else "3rem 10rem"
-    max_width = "100%" if is_mobile else "1200px"
+    
+    # STRICT MOBILE DEFAULTS FOR FLAGSHIP PHONES (S25 Ultra / iPhone)
+    padding = "1rem 0.5rem" if is_mobile else "3rem 5rem"
+    max_width = "480px" if is_mobile else "1600px"
 
     st.markdown(f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
         /* THE FOUNDATION: Pure Black, Edge-to-Edge */
+        body {{
+            overscroll-behavior-y: none; /* Stops pull-to-refresh and bounce */
+            background-color: #000000 !important;
+        }}
+        
         .stApp {{
             background-color: #000000 !important;
         }}
+        
         [data-testid="stAppViewBlockContainer"] {{
             padding: {padding} !important;
             max-width: {max_width} !important;
+            margin: 0 auto !important; /* Centers the mobile 480px column on larger screens */
             width: 100vw !important;
             font-family: 'JetBrains Mono', monospace;
         }}
+        
         [data-testid="stHeader"] {{ display: none !important; }}
         
         /* MASSIVE TYPOGRAPHY OVERRIDE */
@@ -335,9 +345,18 @@ def render_ordering_os():
     except: 
         st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
-    # REWARDS INJECTION
+    is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
+
+    # STAFF PORTAL WITH DESKTOP TOGGLE INJECTION
     if st.session_state.phone_number == "STAFF":
-        st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h4></div>""", unsafe_allow_html=True)
+        staff_c1, staff_c2 = st.columns([0.7, 0.3])
+        with staff_c1:
+            st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h4></div>""", unsafe_allow_html=True)
+        with staff_c2:
+            btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+            if st.button(btn_text, key="staff_view_toggle", use_container_width=True):
+                st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
+                st.rerun()
     else:
         pts = st.session_state.get('reward_points', 0)
         tier, target, next_t, t_color = get_tier_info(pts)
@@ -354,11 +373,13 @@ def render_ordering_os():
     menu = get_master_menu()
     categories = list(menu.keys())
     
-    # 3x3 Purple High-Velocity Grid
+    # DYNAMIC GRID: 2 Columns for Mobile (thumb-friendly), 4 for Desktop
+    num_cols = 2 if is_mobile else 4
+    
     st.markdown('<div id="action-grid">', unsafe_allow_html=True)
-    cols = st.columns(3)
+    cols = st.columns(num_cols)
     for i, cat in enumerate(categories):
-        with cols[i % 3]:
+        with cols[i % num_cols]:
             style_class = "active-tab" if cat == st.session_state.current_cat else ""
             if cat == "La Reserva":
                 pts = st.session_state.get('reward_points', 0)
@@ -431,8 +452,10 @@ def render_kds():
     with c1:
         if st.button("EXIT KDS", key="btn_exit_kds", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
     with c2:
-        if st.button("Toggle Desktop View"):
-            st.session_state.layout_mode = "Desktop" if st.session_state.layout_mode == "Mobile" else "Mobile"
+        is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
+        btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+        if st.button(btn_text):
+            st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
             st.rerun()
         
     if not live_tickets: 
@@ -491,8 +514,10 @@ def render_admin_os():
             st.session_state.view_mode = "login"
             st.rerun()
     with col2:
-        if st.button("Toggle Desktop View"):
-            st.session_state.layout_mode = "Desktop" if st.session_state.layout_mode == "Mobile" else "Mobile"
+        is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
+        btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+        if st.button(btn_text):
+            st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
             st.rerun()
 
     sales_data = get_sales_data()
