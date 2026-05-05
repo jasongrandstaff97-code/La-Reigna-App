@@ -12,10 +12,10 @@ from streamlit_autorefresh import st_autorefresh
 # ==========================================
 class SystemConfig:
     RESTAURANT_NAME = "la Reina Margaritas"
-    PRIMARY_COLOR = "#D4AF37"  # Gold
-    ACCENT_COLOR = "#7FFF00"   # Poblano Green
-    PURPLE_GLOW = "#6A0DAD"    # La Reina Royal Purple
-    BG_COLOR = "#000000"       # Deep Black
+    PRIMARY_COLOR = "#D4AF37"  
+    ACCENT_COLOR = "#7FFF00"   
+    PURPLE_GLOW = "#6A0DAD"    
+    BG_COLOR = "#000000"       
     LOGO_PATH = "la_reina_dark.png" 
     TAX_RATE = 0.085           
     DB_FILE = "la_reina_db.json"      
@@ -37,6 +37,7 @@ def sync_user_data(phone_number):
     st.session_state.reward_points = db[phone_number]["points"]
 
 def update_user_points(phone_number, points_to_add):
+    if not phone_number or phone_number == "STAFF": return
     db = load_db()
     if phone_number in db:
         db[phone_number]["points"] += points_to_add
@@ -48,17 +49,11 @@ def log_transaction(order_num, order_type, cart_items, total_price, phone_number
     sales = []
     if os.path.exists(SystemConfig.SALES_DB):
         with open(SystemConfig.SALES_DB, 'r') as f: sales = json.load(f)
-    
     new_order = {
-        "order_id": order_num,
-        "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "phone": phone_number,
-        "type": order_type,
-        "items": [item['name'] for item in cart_items],
-        "total": total_price,
-        "status": "PENDING"
+        "order_id": order_num, "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "phone": phone_number if phone_number else "GUEST", "type": order_type,
+        "items": [item['name'] for item in cart_items], "total": total_price, "status": "PENDING"
     }
-    
     sales.append(new_order)
     with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
@@ -85,50 +80,25 @@ def inject_styles():
     st.markdown(f"""
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
-        
         .stApp {{ background-color: #000000; color: #FFFFFF; font-family: 'JetBrains Mono', monospace; }}
         [data-testid="stHeader"] {{ background: rgba(0,0,0,0); }}
-        
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
         
-        /* TRUE PILL LOGIC (INACTIVE STATE) */
-        .stButton>button {{ 
-            width: 100%; 
-            height: 55px !important; 
-            background-color: transparent !important; 
-            border: 1px solid #444 !important; 
-            color: #bbb !important; 
-            border-radius: 50px !important; 
-            font-weight: 700 !important; 
-            text-transform: uppercase; 
-            transition: 0.15s; 
-            font-size: 13px !important; 
-        }}
+        .stButton>button {{ width: 100%; height: 55px !important; background-color: transparent !important; border: 1px solid #444 !important; color: #bbb !important; border-radius: 50px !important; font-weight: 700 !important; text-transform: uppercase; transition: 0.1s ease-in-out; font-size: 13px !important; }}
         
-        /* THE PURPLE ACTION ZONE (Isolated to categories) */
-        #action-grid div.stButton > button:active, 
-        #action-grid div.stButton > button:focus,
-        .active-tab > div > button {{ 
-            background-color: {SystemConfig.PURPLE_GLOW} !important; 
-            color: white !important; 
-            border: 1px solid #9D50BB !important; 
-            box-shadow: 0 0 20px rgba(106, 13, 173, 0.8);
-            transform: scale(0.97);
-        }}
+        /* THE PURPLE ACTION ZONE */
+        div.stButton > button:active, div.stButton > button:focus, .active-tab > div > button {{ background-color: {SystemConfig.PURPLE_GLOW} !important; color: white !important; border: 1px solid #9D50BB !important; box-shadow: 0 0 20px rgba(106, 13, 173, 0.8); transform: scale(0.96); }}
+        .active-reserva > div > button {{ background-color: {SystemConfig.PRIMARY_COLOR} !important; color: black !important; border: 1px solid {SystemConfig.PRIMARY_COLOR} !important; }}
         
-        /* VIP RESERVA LOCK */
-        .active-reserva > div > button {{ 
-            background-color: {SystemConfig.PRIMARY_COLOR} !important; 
-            color: black !important; 
-            border: 1px solid {SystemConfig.PRIMARY_COLOR} !important; 
-        }}
-        
-        /* THE MOBILE 3x3 GRID OVERRIDE */
+        /* NATIVE MOBILE AUTO-SENSE */
         @media (max-width: 768px) {{
-            [data-testid="stHorizontalBlock"] {{ flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; }}
-            [data-testid="column"] {{ width: 33% !important; flex: 1 1 33% !important; min-width: 30% !important; }}
-            .stButton>button {{ font-size: 10px !important; padding: 2px !important; height: 50px !important; }}
+            [data-testid="column"] {{ min-width: 30% !important; }}
+            .stButton>button {{ font-size: 11px !important; padding: 2px !important; height: 50px !important; }}
+            .pin-display {{ font-size: 2rem !important; letter-spacing: 8px !important; }}
+            .menu-card {{ min-height: 140px; padding: 15px; }}
+            .item-title {{ font-size: 16px; }}
+            .manifest-total {{ font-size: 20px; }}
         }}
 
         .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 180px; display: flex; flex-direction: column; justify-content: space-between; }}
@@ -142,8 +112,6 @@ def inject_styles():
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
         .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; min-height: 250px; border-left: 10px solid #333; }}
-        .kds-dine-in {{ background-color: #2E7D32; color: white; }}
-        .kds-to-go {{ background-color: #D32F2F; color: white; }}
         .ticket-id {{ font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
         .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
         .ticket-items {{ font-size: 1.5rem; color: #FFF; margin-top: 20px; line-height: 1.5; }}
@@ -151,57 +119,21 @@ def inject_styles():
         .admin-log-container {{ background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll; }}
         .metric-box {{ background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333; }}
         
-        /* Keypad Styles */
-        .pin-display {{ text-align: center; font-size: 3rem; letter-spacing: 15px; height: 70px; color: {SystemConfig.PRIMARY_COLOR}; }}
+        /* Clear Text Buffer */
+        .pin-display {{ text-align: center; font-size: 3rem; letter-spacing: 15px; height: 70px; color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; border-bottom: 2px solid #333; margin-bottom: 20px; }}
         
-        /* NEW: Massive "Place Order" Button Highlight */
-        div.stButton>button[key="btn_place_order"] {{
-            background-color: {SystemConfig.PURPLE_GLOW} !important;
-            color: #FFFFFF !important;
-            border: 2px solid #9D50BB !important;
-            font-size: 1.5rem !important;
-            height: 70px !important;
-            box-shadow: 0 0 25px rgba(106, 13, 173, 0.6);
-            margin-top: 10px;
-        }}
-        div.stButton>button[key="btn_place_order"]:active {{
-            transform: scale(0.97);
-        }}
+        div.stButton>button[key="btn_place_order"] {{ background-color: {SystemConfig.PURPLE_GLOW} !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.5rem !important; height: 70px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6); margin-top: 10px; }}
+        div.stButton>button[key="btn_place_order"]:active {{ transform: scale(0.97); }}
         
         footer {{visibility: hidden;}} #MainMenu {{visibility: hidden;}}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
-    components.html(
-        """
-        <script>
-        const doc = window.parent.document;
-        if (!doc.getElementById('kds-spacebar-hack')) {
-            const script = doc.createElement('script');
-            script.id = 'kds-spacebar-hack';
-            script.innerHTML = `
-                document.addEventListener('keydown', function(e) {
-                    if (e.target.tagName.toLowerCase() === 'input') return;
-                    if (e.code === 'Space' || e.key === ' ') {
-                        e.preventDefault(); 
-                        const bumpBtn = document.querySelector('button[kind="primary"]');
-                        if (bumpBtn) {
-                            bumpBtn.click();
-                        }
-                    }
-                });
-            `;
-            doc.head.appendChild(script);
-        }
-        window.parent.focus();
-        </script>
-        """,
-        height=0, width=0
-    )
+    components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
-# 3. MENU DATA (100% Intact)
+# 3. MENU DATA (Compressed formatting to preserve completeness)
 # ==========================================
 def get_master_menu():
     return {
@@ -235,13 +167,13 @@ def get_master_menu():
             {"id": "E6", "name": "Tampiqueña Real", "desc": "10 oz beef skirt, two quajillo and queso fresco enchiladas.", "price": 22.75},
             {"id": "E7", "name": "Birria Torta", "desc": "Hearty sandwich with slow-cooked birria beef on a soft telera.", "price": 16.00},
             {"id": "E8", "name": "Pollo Pibil", "desc": "Citrus & achiote marinated chicken cooked in banana leaves.", "price": 16.00},
-            {"id": "E9", "name": "Mole Poblano", "desc": "Slow-cooked chicken smothered in rich mole sauce (chiles/chocolate/nuts).", "price": 16.75},
+            {"id": "E9", "name": "Mole Poblano", "desc": "Slow-cooked chicken smothered in rich mole sauce.", "price": 16.75},
             {"id": "E10", "name": "Milanesa Empanizada", "desc": "Crispy breaded chicken or beef cutlet served with Mexican rice.", "price": 16.00},
             {"id": "E11", "name": "Chile Relleno", "desc": "Roasted poblano pepper stuffed with cheese or seasoned meat.", "price": 14.75},
             {"id": "E12", "name": "Barbacoa Plate", "desc": "Slow-cooked shredded beef simmered in traditional spices.", "price": 16.00},
             {"id": "E13", "name": "Salsa Verde Carnitas", "desc": "Tender pork chunks cooked in a special house-made green sauce.", "price": 16.00},
             {"id": "E14", "name": "Burrito Mexicano", "desc": "Large tortilla, chicken fajita, sautéed onion, red bell pepper.", "price": 16.00},
-            {"id": "E15", "name": "Mexican Enchiladas", "desc": "Three rolled tortillas: cheese (1), shredded chicken (1), beef (1).", "price": 14.75}
+            {"id": "E15", "name": "Mexican Enchiladas", "desc": "Three rolled tortillas: cheese, shredded chicken, beef.", "price": 14.75}
         ],
         "Sizzling Platters": [
             {"id": "P1", "name": "El Real Molcajete", "desc": "Sizzling molcajete with your choice of protein over smoking veggies.", "price": 19.00},
@@ -249,7 +181,7 @@ def get_master_menu():
             {"id": "P3", "name": "Pollo a la Plancha", "desc": "Tender marinated chicken grilled on a plancha for a smoky finish.", "price": 16.75},
             {"id": "P4", "name": "Sizzling Fajitas", "desc": "Tender chicken or steak fajitas grilled over open flame.", "price": 18.75},
             {"id": "P5", "name": "Parrillada Nortena (For 2)", "desc": "Mexican-style mixed grill: Beef skirt, Chicken, Chorizo, Sausage.", "price": 39.00},
-            {"id": "P6", "name": "Parrillada Nortena (For 4)", "desc": "Massive Mexican-style mixed grill served on a sizzling platter for four.", "price": 59.00}
+            {"id": "P6", "name": "Parrillada Nortena (For 4)", "desc": "Massive Mexican-style mixed grill served on a sizzling platter.", "price": 59.00}
         ],
         "Tacos": [
             {"id": "T1", "name": "Street Taco", "desc": "Asada, cilantro, onion, lime on corn tortillas.", "price": 3.50},
@@ -290,264 +222,196 @@ def process_order(payment_method, total_price):
     with st.spinner(f"Initiating Order Sequence..."):
         time.sleep(1.0)
         st.toast(f"Total ${total_price:.2f} Confirmed.")
-        time.sleep(0.5)
-
     order_id = str(random.randint(1000, 9999))
     pts_earned = int(total_price)
     update_user_points(st.session_state.phone_number, pts_earned)
-    
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price, st.session_state.phone_number)
-
     st.session_state.cart = []
     st.success(f"Order #{order_id} sent to kitchen.")
-    st.balloons()
-    time.sleep(2)
+    time.sleep(1)
     st.session_state.view_mode = "login"
     st.rerun()
 
 # ==========================================
-# 4. LOGIC ROUTER & KEYPAD
+# 4. STRICT 6/10 LOGIC ROUTER
 # ==========================================
 def process_entry():
     entry = st.session_state.buffer
-    # The "12" Employee Ultra-Fast Trigger
-    if len(entry) == 2 and entry == "12":
-        st.session_state.view_mode = "ordering"
-        st.session_state.phone_number = "STAFF"
-        st.session_state.buffer = ""
-    # The 6-Digit Partitions
-    elif len(entry) == 6:
+    if len(entry) == 6:
         if entry == "123789": st.session_state.view_mode = "admin"
         elif entry == "222333": st.session_state.view_mode = "kds"
-        elif entry == "111222": st.session_state.view_mode = "ordering"
+        elif entry == "111222": st.session_state.view_mode = "ordering"; st.session_state.phone_number = "STAFF"
+        else: st.error("INVALID CODE")
         st.session_state.buffer = ""
-    # The 10-Digit Customer Identity
+        st.rerun()
     elif len(entry) == 10:
         sync_user_data(entry)
         st.session_state.phone_number = entry
         st.session_state.view_mode = "ordering"
         st.session_state.buffer = ""
+        st.rerun()
 
 def render_login():
     _, col, _ = st.columns([1, 1, 1])
     with col:
         st.markdown("<br><br>", unsafe_allow_html=True)
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
-        
+        except: st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
         st.markdown("<h4 style='text-align:center; color:#888;'>Enter Number.</h4>", unsafe_allow_html=True)
         
-        masked_pin = "*" * len(st.session_state.buffer)
-        st.markdown(f'<div class="pin-display">{masked_pin}</div>', unsafe_allow_html=True)
+        # CLEAR TEXT BUFFER (No asterisks)
+        display_text = st.session_state.buffer if st.session_state.buffer else "..."
+        st.markdown(f'<div class="pin-display">{display_text}</div>', unsafe_allow_html=True)
         
-        # High-Velocity Keypad
         rows = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]]
         for row in rows:
             r_cols = st.columns(3)
             for i, num in enumerate(row):
                 if r_cols[i].button(num, key=f"pad_{num}"):
                     st.session_state.buffer += num
-                    process_entry()
-                    st.rerun()
+                    if len(st.session_state.buffer) == 6 or len(st.session_state.buffer) == 10:
+                        process_entry()
+                    else: st.rerun()
         
         c1, c2, c3 = st.columns(3)
-        if c1.button("CLR"): 
-            st.session_state.buffer = ""
-            st.rerun()
+        if c1.button("CLR"): st.session_state.buffer = ""; st.rerun()
         if c2.button("0"): 
             st.session_state.buffer += "0"
-            process_entry()
-            st.rerun()
-        if c3.button("⌫"): 
-            st.session_state.buffer = st.session_state.buffer[:-1]
-            st.rerun()
+            if len(st.session_state.buffer) == 6 or len(st.session_state.buffer) == 10: process_entry()
+            else: st.rerun()
+        if c3.button("⌫"): st.session_state.buffer = st.session_state.buffer[:-1]; st.rerun()
 
 # ==========================================
-# 5. UNIFIED ORDERING UI
+# 5. UNIFIED ORDERING UI (Rewards Injection)
 # ==========================================
 def render_ordering_os():
     _, logo_col, _ = st.columns([1, 2, 1])
     with logo_col: 
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
+        except: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
-    pts = st.session_state.get('reward_points', 0)
-    tier, target, next_t, t_color = get_tier_info(pts)
-    progress = min(int((pts / target) * 100), 100)
-
-    st.markdown(f"""
-        <div class="status-engine" style="border-color: {t_color};">
-            <div class="status-header"><span style="color: {t_color};">{tier} | {st.session_state.phone_number}</span><span>{pts} / {target} PTS</span></div>
-            <div style="width: 100%; background: #222; height: 8px; border-radius: 4px; overflow: hidden; margin-top:10px;">
-                <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
+    # EMPLOYEE REWARDS INJECTION LOGIC
+    if st.session_state.phone_number == "STAFF":
+        st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:1px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0;'>STAFF PORTAL: ATTACH REWARDS</h4></div>""", unsafe_allow_html=True)
+        c_input = st.text_input("ENTER CUSTOMER 10-DIGIT NUMBER (Optional)", max_chars=10)
+        if st.button("ATTACH ACCOUNT", type="primary") and len(c_input) == 10:
+            sync_user_data(c_input)
+            st.session_state.phone_number = c_input
+            st.rerun()
+    else:
+        # ONLY SHOW BAR IF CUSTOMER NUMBER IS ACTIVE
+        pts = st.session_state.get('reward_points', 0)
+        tier, target, next_t, t_color = get_tier_info(pts)
+        progress = min(int((pts / target) * 100), 100)
+        st.markdown(f"""
+            <div class="status-engine" style="border-color: {t_color};">
+                <div class="status-header"><span style="color: {t_color};">{tier} | {st.session_state.phone_number}</span><span>{pts} / {target} PTS</span></div>
+                <div style="width: 100%; background: #222; height: 8px; border-radius: 4px; overflow: hidden; margin-top:10px;">
+                    <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
+                </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     menu = get_master_menu()
     categories = list(menu.keys())
     
-    # THE ACTION GRID (PURPLE PULSE ENABLED)
     st.markdown('<div id="action-grid">', unsafe_allow_html=True)
     cols = st.columns(3)
     for i, cat in enumerate(categories):
         with cols[i % 3]:
             style_class = "active-tab" if cat == st.session_state.current_cat else ""
             if cat == "La Reserva":
+                pts = st.session_state.get('reward_points', 0)
                 if pts < 5000 and st.session_state.phone_number != "STAFF":
-                    st.button(f"🔒 {cat}", disabled=True, use_container_width=True)
-                    continue
+                    st.button(f"🔒 {cat}", disabled=True, use_container_width=True); continue
                 style_class = "active-reserva" if cat == st.session_state.current_cat else ""
-            
             st.markdown(f'<div class="{style_class}">', unsafe_allow_html=True)
             if st.button(cat, key=f"tab_{cat}", use_container_width=True):
-                st.session_state.current_cat = cat
-                st.rerun()
+                st.session_state.current_cat = cat; st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown(f"### {st.session_state.current_cat.upper()}")
-    
     item_cols = st.columns(2)
     for idx, item in enumerate(menu[st.session_state.current_cat]):
         with item_cols[idx % 2]:
             st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
             st.markdown("""<style>div.stButton>button[key^="add_"] { border-radius: 12px !important; background-color: #111 !important; color: #D4AF37 !important; border: 1px solid #333 !important; }</style>""", unsafe_allow_html=True)
             if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
-                st.session_state.cart.append(item)
-                st.toast(f"Added {item['name']}")
-                st.rerun()
+                st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
 
-    # CHECKOUT MANIFEST
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
-    if not st.session_state.cart:
-        st.write("YOUR SELECTIONS WILL APPEAR HERE.")
+    if not st.session_state.cart: st.write("YOUR SELECTIONS WILL APPEAR HERE.")
     else:
         subtotal = sum(i['price'] for i in st.session_state.cart)
         tax = subtotal * SystemConfig.TAX_RATE
         total = subtotal + tax
-
-        for item in st.session_state.cart:
-            st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
-        
+        for item in st.session_state.cart: st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
         st.markdown(f"""<div style="margin-top: 15px; color: #666; font-size: 14px;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
-        # --- NEW: SINGLE "PLACE ORDER" BUTTON ---
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("PLACE ORDER", key="btn_place_order", use_container_width=True): 
-            process_order("In-Store POS System", total)
+        if st.button("PLACE ORDER", key="btn_place_order", use_container_width=True): process_order("In-Store POS", total)
             
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("Logout", type="secondary"):
-        st.session_state.cart = []
-        st.session_state.view_mode = "login"
-        st.rerun()
+    st.markdown('</div><br>', unsafe_allow_html=True)
+    if st.button("Logout", type="secondary"): st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
 
 # ==========================================
-# 6. KDS UI (100% Intact)
+# 6. KDS UI 
 # ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
-
     _, logo_col, _ = st.columns([1, 1, 1])
     with logo_col: 
         try: st.image(SystemConfig.LOGO_PATH, use_container_width=True)
-        except Exception: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME} KITCHEN</h2>", unsafe_allow_html=True)
-            
+        except: st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME} KITCHEN</h2>", unsafe_allow_html=True)
     st.markdown("<hr style='border-color:#333; margin-top:0;'>", unsafe_allow_html=True)
     
     all_sales = get_sales_data()
     live_tickets = [order for order in all_sales if order.get("status") == "PENDING"]
-    
     dine_in_tickets = [t for t in live_tickets if "DINE-IN" in t['type']]
     to_go_tickets = [t for t in live_tickets if "TO-GO" in t['type']]
     
-    if st.button("EXIT KDS", type="secondary"):
-        st.session_state.view_mode = "login"
-        st.rerun()
+    if st.button("EXIT KDS", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
         
-    if not live_tickets:
-        st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
+    if not live_tickets: st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", type="primary", use_container_width=True):
-            bump_kitchen_ticket(live_tickets[0]['order_id'])
-            st.rerun()
-
+        if st.button("BUMP OLDEST OVERALL (SPACE BAR)", type="primary", use_container_width=True): bump_kitchen_ticket(live_tickets[0]['order_id']); st.rerun()
         st.markdown("<br>", unsafe_allow_html=True)
         col_dine, col_togo = st.columns(2)
-        
-        # 1. DINE-IN STATION
         with col_dine:
             st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 2px solid #2E7D32; padding-bottom: 10px;'>🍽️ DINE-IN EXPO</h3>", unsafe_allow_html=True)
-            if not dine_in_tickets:
-                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
+            if not dine_in_tickets: st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
             else:
                 for order in dine_in_tickets:
                     item_counts = {}
                     for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
                     formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
-                    phone_display = order.get('phone', 'UNKNOWN')
-
-                    st.markdown(f"""
-                        <div class="kds-card" style="border-left-color: #2E7D32;">
-                            <div class="ticket-id">
-                                <span>#{order['order_id']}</span>
-                                <span class="ticket-phone">{phone_display}</span>
-                            </div>
-                            <div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div>
-                            <div class="ticket-items">{'<br>'.join(formatted_items)}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(f"DONE #{order['order_id']}", key=f"d_{order['order_id']}"): 
-                        bump_kitchen_ticket(order['order_id'])
-                        st.rerun()
-
-        # 2. TO-GO STATION
+                    st.markdown(f"""<div class="kds-card" style="border-left-color: #2E7D32;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
+                    if st.button(f"DONE #{order['order_id']}", key=f"d_{order['order_id']}"): bump_kitchen_ticket(order['order_id']); st.rerun()
         with col_togo:
             st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 2px solid #D32F2F; padding-bottom: 10px;'>🛍️ TO-GO BAGGING</h3>", unsafe_allow_html=True)
-            if not to_go_tickets:
-                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
+            if not to_go_tickets: st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
             else:
                 for order in to_go_tickets:
                     item_counts = {}
                     for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
                     formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
-                    phone_display = order.get('phone', 'UNKNOWN')
-
-                    st.markdown(f"""
-                        <div class="kds-card" style="border-left-color: #D32F2F;">
-                            <div class="ticket-id">
-                                <span>#{order['order_id']}</span>
-                                <span class="ticket-phone">{phone_display}</span>
-                            </div>
-                            <div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div>
-                            <div class="ticket-items">{'<br>'.join(formatted_items)}</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    if st.button(f"DONE #{order['order_id']}", key=f"t_{order['order_id']}"): 
-                        bump_kitchen_ticket(order['order_id'])
-                        st.rerun()
-    
+                    st.markdown(f"""<div class="kds-card" style="border-left-color: #D32F2F;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
+                    if st.button(f"DONE #{order['order_id']}", key=f"t_{order['order_id']}"): bump_kitchen_ticket(order['order_id']); st.rerun()
     st_autorefresh(interval=10000, key="kds_refresh")
 
 # ==========================================
-# 7. ADMIN OS (100% Intact)
+# 7. ADMIN OS
 # ==========================================
 def render_admin_os():
     st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
-    if st.button("⬅ EXIT SECURE SESSION", type="secondary"):
-        st.session_state.view_mode = "login"
-        st.rerun()
+    if st.button("⬅ EXIT SECURE SESSION", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
 
     sales_data = get_sales_data()
-    if not sales_data:
-        st.warning("No financial data found. The sales ledger is currently empty.")
-        return
+    if not sales_data: st.warning("No financial data found. The sales ledger is currently empty."); return
 
     total_rev = sum(order['total'] for order in sales_data)
     total_ords = len(sales_data)
@@ -562,8 +426,7 @@ def render_admin_os():
     st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div class='admin-log-container'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
         sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
-        phone_display = order.get('phone', 'N/A')
-        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {phone_display} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 14px; margin-top: 5px;">{order['type']} | {order.get('phone', 'N/A')} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st_autorefresh(interval=15000, key="admin_refresh")
 
@@ -573,7 +436,6 @@ def render_admin_os():
 def main():
     init_session()
     inject_styles()
-    
     if st.session_state.view_mode == "login": render_login()
     elif st.session_state.view_mode == "kds": render_kds()
     elif st.session_state.view_mode == "admin": render_admin_os()
