@@ -125,7 +125,6 @@ def inject_styles():
             box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important;
         }}
 
-        /* REFINED UNIVERSAL BUTTONS - SHRUNKEN BOX, BIGGER TEXT */
         div.stButton > button {{ 
             width: 100%; 
             min-height: 55px !important;
@@ -143,8 +142,7 @@ def inject_styles():
             line-height: 1.2 !important;
         }}
         
-        div.stButton > button:active, 
-        .active-tab > div > button {{ 
+        div.stButton > button:active {{ 
             background-color: {SystemConfig.PURPLE_GLOW} !important; 
             color: white !important; 
             border: 2px solid #9D50BB !important; 
@@ -152,33 +150,26 @@ def inject_styles():
             transform: scale(0.96) !important; 
         }}
         
-        .active-reserva > div > button {{ 
-            background-color: {SystemConfig.PRIMARY_COLOR} !important; 
-            color: black !important; 
-            border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; 
-        }}
-        
-        /* MENU CARDS */
         .menu-card {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px 15px; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; }}
         .item-title {{ font-size: 22px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 6px; }}
         .item-desc {{ color: #aaa !important; font-size: 15px !important; margin-bottom: 15px; line-height: 1.4; }}
         .price-tag {{ font-size: 20px !important; font-weight: 700; color: #FFF; }}
         
-        /* MANIFEST / CART */
         .manifest-container {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-top: 25px; }}
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }}
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #aaa; font-size: 1.2rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
-        /* KDS TICKET CARDS */
-        .kds-card {{ background-color: #080808; padding: 25px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #333; border: top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
+        .kds-card {{ background-color: #080808; padding: 25px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #333; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
         .ticket-id {{ font-size: 2.2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
         .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
         .ticket-items {{ font-size: 1.6rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
 
-        /* REWARDS ENGINE - TIGHTENED PADDING */
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 12px 15px; border-radius: 10px; margin: 15px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 16px; }}
+        
+        .category-header {{ margin-top: 2.5rem; color: {SystemConfig.PRIMARY_COLOR} !important; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; }}
+        .locked-category {{ margin-top: 2.5rem; color: #555 !important; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; font-size: 1.5rem; font-weight: 800; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -267,7 +258,6 @@ def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'layout_mode' not in st.session_state: st.session_state.layout_mode = "Mobile"
     if 'cart' not in st.session_state: st.session_state.cart = []
-    if 'current_cat' not in st.session_state: st.session_state.current_cat = "Appetizers"
     if 'phone_number' not in st.session_state: st.session_state.phone_number = "STAFF"
     if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
 
@@ -326,7 +316,7 @@ def render_login():
             st.rerun()
 
 # ==========================================
-# 5. UNIFIED ORDERING UI
+# 5. UNIFIED ORDERING UI (Vertical Scroll)
 # ==========================================
 def render_ordering_os():
     try: 
@@ -359,34 +349,26 @@ def render_ordering_os():
         """, unsafe_allow_html=True)
 
     menu = get_master_menu()
-    categories = list(menu.keys())
     
-    num_cols = 2 if is_mobile else 4
+    # ALPHABETIZE THE CATEGORIES
+    categories = sorted(list(menu.keys()))
     
-    st.markdown('<div id="action-grid">', unsafe_allow_html=True)
-    # TIGHTENED GRID GAP HERE
-    cols = st.columns(num_cols, gap="small")
-    for i, cat in enumerate(categories):
-        with cols[i % num_cols]:
-            style_class = "active-tab" if cat == st.session_state.current_cat else ""
-            if cat == "La Reserva":
-                pts = st.session_state.get('reward_points', 0)
-                if pts < 5000 and st.session_state.phone_number != "STAFF":
-                    st.button(f"🔒 {cat}", disabled=True, use_container_width=True); continue
-                style_class = "active-reserva" if cat == st.session_state.current_cat else ""
-            st.markdown(f'<div class="{style_class}">', unsafe_allow_html=True)
-            if st.button(cat, key=f"tab_{cat}", use_container_width=True):
-                st.session_state.current_cat = cat; st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    # RENDER ALL CATEGORIES IN A SINGLE VERTICAL STACK
+    for cat in categories:
+        if cat == "La Reserva":
+            pts = st.session_state.get('reward_points', 0)
+            if pts < 5000 and st.session_state.phone_number != "STAFF":
+                st.markdown(f"<div class='locked-category'>🔒 {cat} (REQUIRES 5000 PTS)</div>", unsafe_allow_html=True)
+                continue
+                
+        st.markdown(f"<div class='category-header'>{cat}</div>", unsafe_allow_html=True)
+        
+        for item in menu[cat]:
+            st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
+            if st.button(f"+ ADD TO CART", key=f"add_{item['id']}", use_container_width=True):
+                st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
 
-    st.markdown(f"<h3 style='margin-top: 1rem; color:{SystemConfig.PRIMARY_COLOR} !important;'>{st.session_state.current_cat.upper()}</h3>", unsafe_allow_html=True)
-    
-    for item in menu[st.session_state.current_cat]:
-        st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-        if st.button(f"+ ADD TO CART", key=f"add_{item['id']}", use_container_width=True):
-            st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
-
+    # Checkout Section at the Bottom
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart: 
         st.write("YOUR SELECTIONS WILL APPEAR HERE.")
