@@ -78,7 +78,6 @@ def bump_kitchen_ticket(order_id):
 st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
 
 def inject_styles():
-    # 1. MOBILE VIEWPORT LOCK
     st.markdown("""
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     """, unsafe_allow_html=True)
@@ -92,7 +91,6 @@ def inject_styles():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
-        /* THE FOUNDATION */
         body {{ overscroll-behavior-y: none; background-color: #000000 !important; }}
         .stApp {{ background-color: #000000 !important; }}
         
@@ -104,12 +102,10 @@ def inject_styles():
             font-family: 'JetBrains Mono', monospace;
         }}
         
-        [data-testid="stHeader"] {{ display: none !important; }}
-        footer {{ display: none !important; }}
+        [data-testid="stHeader"], footer {{ display: none !important; }}
         
         h1, h2, h3, h4, p, div, span {{ color: #FFFFFF !important; }}
 
-        /* PERFECTED LOGIN INPUT BOX */
         .stTextInput div[data-baseweb="input"] {{
             background-color: #111111 !important;
             border: 2px solid #333 !important;
@@ -129,22 +125,22 @@ def inject_styles():
             box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important;
         }}
 
-        /* UNIVERSAL BUTTONS (WITH TEXT WRAPPING FOR MOBILE) */
+        /* REFINED UNIVERSAL BUTTONS - SHRUNKEN BOX, BIGGER TEXT */
         div.stButton > button {{ 
             width: 100%; 
-            min-height: 4.5rem !important;
-            height: auto !important; /* Allows button to grow if text wraps */
+            min-height: 55px !important;
+            height: auto !important; 
             background-color: #111 !important; 
             border: 2px solid #444 !important; 
             color: #FFF !important; 
-            border-radius: 12px !important; 
+            border-radius: 8px !important; 
             font-weight: 800 !important; 
             text-transform: uppercase; 
             transition: 0.1s ease-in-out; 
-            font-size: 1.4rem !important; /* Larger readable text */
-            padding: 10px !important;
-            white-space: normal !important; /* Forces text to wrap instead of shrinking */
-            line-height: 1.3 !important;
+            font-size: 16px !important; 
+            padding: 8px 5px !important; 
+            white-space: normal !important; 
+            line-height: 1.2 !important;
         }}
         
         div.stButton > button:active, 
@@ -162,32 +158,31 @@ def inject_styles():
             border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; 
         }}
         
-        /* MENU CARDS - BIGGER FONTS */
-        .menu-card {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 25px 20px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; }}
-        .item-title {{ font-size: 24px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 8px; }}
-        .item-desc {{ color: #aaa !important; font-size: 16px !important; margin-bottom: 15px; line-height: 1.4; }}
-        .price-tag {{ font-size: 22px !important; font-weight: 700; color: #FFF; }}
+        /* MENU CARDS */
+        .menu-card {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px 15px; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; }}
+        .item-title {{ font-size: 22px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 6px; }}
+        .item-desc {{ color: #aaa !important; font-size: 15px !important; margin-bottom: 15px; line-height: 1.4; }}
+        .price-tag {{ font-size: 20px !important; font-weight: 700; color: #FFF; }}
         
         /* MANIFEST / CART */
-        .manifest-container {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 25px; margin-top: 30px; }}
+        .manifest-container {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-top: 25px; }}
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }}
         .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #aaa; font-size: 1.2rem; }}
         .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
         /* KDS TICKET CARDS */
-        .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; border-left: 10px solid #333; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
-        .ticket-id {{ font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
+        .kds-card {{ background-color: #080808; padding: 25px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #333; border: top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
+        .ticket-id {{ font-size: 2.2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
         .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
-        .ticket-items {{ font-size: 1.8rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
+        .ticket-items {{ font-size: 1.6rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
 
-        /* REWARDS ENGINE */
-        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
-        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
+        /* REWARDS ENGINE - TIGHTENED PADDING */
+        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 12px 15px; border-radius: 10px; margin: 15px 0; }}
+        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 16px; }}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
-    # SPACEBAR HACK
     components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
@@ -269,7 +264,6 @@ def get_tier_info(pts):
     else: return "HABANERO 🔥", 10000, "EL REY", "#D4AF37"
 
 def init_session():
-    # CHANGED DEFAULT BOOT SCREEN TO LOGIN
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'layout_mode' not in st.session_state: st.session_state.layout_mode = "Mobile"
     if 'cart' not in st.session_state: st.session_state.cart = []
@@ -306,26 +300,25 @@ def render_login():
         
     st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3rem; font-weight: 800; margin-bottom: 2rem; line-height: 1.2;'>ENTER<br>NUMBER</h3>", unsafe_allow_html=True)
         
-    # Container restricts the width beautifully on mobile without CSS hacks
     col1, col2, col3 = st.columns([1, 8, 1])
     with col2:
         entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
         
     if entry:
         if len(entry) == 6:
-            if entry == "123789": # Admin Sweep
+            if entry == "123789":
                 st.session_state.view_mode = "admin"
                 st.rerun()
-            elif entry == "222333": # KDS Partition
+            elif entry == "222333":
                 st.session_state.view_mode = "kds"
                 st.rerun()
-            elif entry == "111222": # Employee Triple-Tap
+            elif entry == "111222":
                 st.session_state.view_mode = "ordering"
                 st.session_state.phone_number = "STAFF"
                 st.rerun()
             else:
                 st.error("Invalid Code")
-        elif len(entry) >= 10: # Customer VIP
+        elif len(entry) >= 10:
             clean_num = entry[:10]
             sync_user_data(clean_num)
             st.session_state.phone_number = clean_num
@@ -346,7 +339,7 @@ def render_ordering_os():
     if st.session_state.phone_number == "STAFF":
         staff_c1, staff_c2 = st.columns([0.7, 0.3])
         with staff_c1:
-            st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:20px;'><h4 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h4></div>""", unsafe_allow_html=True)
+            st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:15px;'><h4 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h4></div>""", unsafe_allow_html=True)
         with staff_c2:
             btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
             if st.button(btn_text, key="staff_view_toggle", use_container_width=True):
@@ -359,7 +352,7 @@ def render_ordering_os():
         st.markdown(f"""
             <div class="status-engine" style="border-color: {t_color};">
                 <div class="status-header"><span style="color: {t_color};">{tier} | {st.session_state.phone_number}</span><span>{pts} / {target} PTS</span></div>
-                <div style="width: 100%; background: #222; height: 8px; border-radius: 4px; overflow: hidden; margin-top:10px;">
+                <div style="width: 100%; background: #222; height: 6px; border-radius: 3px; overflow: hidden; margin-top:8px;">
                     <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
                 </div>
             </div>
@@ -371,7 +364,8 @@ def render_ordering_os():
     num_cols = 2 if is_mobile else 4
     
     st.markdown('<div id="action-grid">', unsafe_allow_html=True)
-    cols = st.columns(num_cols)
+    # TIGHTENED GRID GAP HERE
+    cols = st.columns(num_cols, gap="small")
     for i, cat in enumerate(categories):
         with cols[i % num_cols]:
             style_class = "active-tab" if cat == st.session_state.current_cat else ""
@@ -408,13 +402,13 @@ def render_ordering_os():
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.8rem !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }</style>""", unsafe_allow_html=True)
+        st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 20px !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }</style>""", unsafe_allow_html=True)
         if st.button("FIRE TO KITCHEN", key="btn_place_order", use_container_width=True): 
             process_order("In-Store POS", total)
             
     st.markdown('</div><br>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2, gap="small")
     with col1:
         if st.button("Clear Cart", type="secondary"): 
             st.session_state.cart = []; st.rerun()
