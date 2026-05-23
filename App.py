@@ -78,14 +78,13 @@ def bump_kitchen_ticket(order_id):
 st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
 
 def inject_styles():
-    # 1. MOBILE VIEWPORT LOCK (Forces scale to 1.0, prevents tiny text)
+    # 1. MOBILE VIEWPORT LOCK
     st.markdown("""
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     """, unsafe_allow_html=True)
 
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
     
-    # STRICT MOBILE DEFAULTS FOR FLAGSHIP PHONES (S25 Ultra / iPhone)
     padding = "1rem 0.5rem" if is_mobile else "3rem 5rem"
     max_width = "480px" if is_mobile else "1600px"
 
@@ -93,55 +92,48 @@ def inject_styles():
         <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap');
         
-        /* THE FOUNDATION: Pure Black, Edge-to-Edge */
-        body {{
-            overscroll-behavior-y: none; /* Stops pull-to-refresh and bounce */
-            background-color: #000000 !important;
-        }}
-        
-        .stApp {{
-            background-color: #000000 !important;
-        }}
+        /* THE FOUNDATION */
+        body {{ overscroll-behavior-y: none; background-color: #000000 !important; }}
+        .stApp {{ background-color: #000000 !important; }}
         
         [data-testid="stAppViewBlockContainer"] {{
             padding: {padding} !important;
             max-width: {max_width} !important;
-            margin: 0 auto !important; /* Centers the mobile 480px column on larger screens */
+            margin: 0 auto !important;
             width: 100vw !important;
             font-family: 'JetBrains Mono', monospace;
         }}
         
         [data-testid="stHeader"] {{ display: none !important; }}
+        footer {{ display: none !important; }}
         
-        /* MASSIVE TYPOGRAPHY OVERRIDE */
-        h1, h2, h3, h4, p, div {{ color: #FFFFFF !important; }}
+        h1, h2, h3, h4, p, div, span {{ color: #FFFFFF !important; }}
 
-        /* NATIVE INPUT BAR (Forces phone keypad, huge target) */
-        div[data-baseweb="input"] > div {{
+        /* PERFECTED LOGIN INPUT BOX */
+        .stTextInput div[data-baseweb="input"] {{
             background-color: #111111 !important;
             border: 2px solid #333 !important;
             border-radius: 12px !important;
-            height: 7rem !important;
-            width: 80% !important;
-            max-width: 320px !important;
-            margin: 0 auto 1rem auto !important;
         }}
-        div[data-baseweb="input"] input {{
+        .stTextInput input {{
+            background-color: transparent !important;
             color: {SystemConfig.PRIMARY_COLOR} !important;
-            font-size: 4rem !important;
-            letter-spacing: 0.2rem;
+            font-size: 3.5rem !important;
+            height: 6rem !important;
             text-align: center !important;
+            letter-spacing: 0.5rem;
             -webkit-text-security: disc;
         }}
-        div[data-baseweb="input"] > div:focus-within {{
+        .stTextInput div[data-baseweb="input"]:focus-within {{
             border-color: {SystemConfig.PURPLE_GLOW} !important;
             box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important;
         }}
 
-        /* MASSIVE UNIVERSAL BUTTONS */
+        /* UNIVERSAL BUTTONS (WITH TEXT WRAPPING FOR MOBILE) */
         div.stButton > button {{ 
             width: 100%; 
-            height: 5rem !important; 
+            min-height: 4.5rem !important;
+            height: auto !important; /* Allows button to grow if text wraps */
             background-color: #111 !important; 
             border: 2px solid #444 !important; 
             color: #FFF !important; 
@@ -149,10 +141,12 @@ def inject_styles():
             font-weight: 800 !important; 
             text-transform: uppercase; 
             transition: 0.1s ease-in-out; 
-            font-size: 1.5rem !important; 
+            font-size: 1.4rem !important; /* Larger readable text */
+            padding: 10px !important;
+            white-space: normal !important; /* Forces text to wrap instead of shrinking */
+            line-height: 1.3 !important;
         }}
         
-        /* UNIVERSAL PURPLE ACTION ZONE */
         div.stButton > button:active, 
         .active-tab > div > button {{ 
             background-color: {SystemConfig.PURPLE_GLOW} !important; 
@@ -162,45 +156,42 @@ def inject_styles():
             transform: scale(0.96) !important; 
         }}
         
-        /* VIP RESERVA LOCK */
         .active-reserva > div > button {{ 
             background-color: {SystemConfig.PRIMARY_COLOR} !important; 
             color: black !important; 
             border: 2px solid {SystemConfig.PRIMARY_COLOR} !important; 
         }}
         
-        /* MENU & MANIFEST CARDS */
-        .menu-card {{ background: rgba(255, 255, 255, 0.03); border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 15px; min-height: 140px; display: flex; flex-direction: column; justify-content: space-between; }}
-        .item-title {{ font-size: 20px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; }}
-        .item-desc {{ color: #888; font-size: 13px; margin: 10px 0; }}
-        .price-tag {{ font-size: 20px; font-weight: 700; color: #FFF; }}
+        /* MENU CARDS - BIGGER FONTS */
+        .menu-card {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 25px 20px; margin-bottom: 20px; display: flex; flex-direction: column; justify-content: space-between; }}
+        .item-title {{ font-size: 24px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 8px; }}
+        .item-desc {{ color: #aaa !important; font-size: 16px !important; margin-bottom: 15px; line-height: 1.4; }}
+        .price-tag {{ font-size: 22px !important; font-weight: 700; color: #FFF; }}
         
+        /* MANIFEST / CART */
         .manifest-container {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 25px; margin-top: 30px; }}
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }}
-        .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #888; font-size: 1.1rem; }}
-        .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 26px; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
+        .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #aaa; font-size: 1.2rem; }}
+        .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
         /* KDS TICKET CARDS */
         .kds-card {{ background-color: #080808; padding: 30px; border-radius: 8px; margin-bottom: 20px; border-left: 10px solid #333; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
         .ticket-id {{ font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
         .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
-        .ticket-items {{ font-size: 1.6rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
+        .ticket-items {{ font-size: 1.8rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
 
         /* REWARDS ENGINE */
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 700; text-transform: uppercase; font-size: 14px; }}
-
-        /* HIDE CLUTTER */
-        footer, header, [data-testid="stSidebarNav"] {{ display: none !important; }}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
-    # SPACEBAR HACK: Looks for the PRIMARY button (assigned only to "BUMP NEWEST")
+    # SPACEBAR HACK
     components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
-# 3. MENU DATA (100% COMPLETE & INTACT)
+# 3. MENU DATA
 # ==========================================
 def get_master_menu():
     return {
@@ -278,7 +269,8 @@ def get_tier_info(pts):
     else: return "HABANERO 🔥", 10000, "EL REY", "#D4AF37"
 
 def init_session():
-    if 'view_mode' not in st.session_state: st.session_state.view_mode = "kds" # Default to KDS
+    # CHANGED DEFAULT BOOT SCREEN TO LOGIN
+    if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'layout_mode' not in st.session_state: st.session_state.layout_mode = "Mobile"
     if 'cart' not in st.session_state: st.session_state.cart = []
     if 'current_cat' not in st.session_state: st.session_state.current_cat = "Appetizers"
@@ -290,7 +282,6 @@ def process_order(payment_method, total_price):
         time.sleep(0.5)
         st.toast(f"Total ${total_price:.2f} Confirmed.")
     
-    # FORMATTING LOGIC: 001, 002
     sales = get_sales_data()
     order_id = f"{len(sales) + 1:03}" 
     
@@ -313,10 +304,12 @@ def render_login():
     except: 
         st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif; font-size: 4rem;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
         
-    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2;'>ENTER<br>NUMBER</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3rem; font-weight: 800; margin-bottom: 2rem; line-height: 1.2;'>ENTER<br>NUMBER</h3>", unsafe_allow_html=True)
         
-    # Native Trigger: No clunky on-screen grid. Type password summons native numpad.
-    entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
+    # Container restricts the width beautifully on mobile without CSS hacks
+    col1, col2, col3 = st.columns([1, 8, 1])
+    with col2:
+        entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
         
     if entry:
         if len(entry) == 6:
@@ -340,7 +333,7 @@ def render_login():
             st.rerun()
 
 # ==========================================
-# 5. UNIFIED ORDERING UI (Rewards + Layout)
+# 5. UNIFIED ORDERING UI
 # ==========================================
 def render_ordering_os():
     try: 
@@ -350,7 +343,6 @@ def render_ordering_os():
 
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
 
-    # STAFF PORTAL WITH DESKTOP TOGGLE INJECTION
     if st.session_state.phone_number == "STAFF":
         staff_c1, staff_c2 = st.columns([0.7, 0.3])
         with staff_c1:
@@ -376,7 +368,6 @@ def render_ordering_os():
     menu = get_master_menu()
     categories = list(menu.keys())
     
-    # DYNAMIC GRID: 2 Columns for Mobile (thumb-friendly), 4 for Desktop
     num_cols = 2 if is_mobile else 4
     
     st.markdown('<div id="action-grid">', unsafe_allow_html=True)
@@ -395,15 +386,13 @@ def render_ordering_os():
             st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown(f"<h3 style='margin-top: 1rem;'>{st.session_state.current_cat.upper()}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='margin-top: 1rem; color:{SystemConfig.PRIMARY_COLOR} !important;'>{st.session_state.current_cat.upper()}</h3>", unsafe_allow_html=True)
     
-    # Render Items
     for item in menu[st.session_state.current_cat]:
         st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-        if st.button(f"+ ADD {item['name']}", key=f"add_{item['id']}", use_container_width=True):
+        if st.button(f"+ ADD TO CART", key=f"add_{item['id']}", use_container_width=True):
             st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
 
-    # Cart Processing
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart: 
         st.write("YOUR SELECTIONS WILL APPEAR HERE.")
@@ -419,7 +408,6 @@ def render_ordering_os():
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
-        # Using specific styling for the final place order button
         st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 1.8rem !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }</style>""", unsafe_allow_html=True)
         if st.button("FIRE TO KITCHEN", key="btn_place_order", use_container_width=True): 
             process_order("In-Store POS", total)
@@ -435,7 +423,7 @@ def render_ordering_os():
             st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
 
 # ==========================================
-# 6. KDS UI (With LIFO Spacebar Hack)
+# 6. KDS UI
 # ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
@@ -464,10 +452,8 @@ def render_kds():
     if not live_tickets: 
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
     else:
-        # LIFO BUMP: Bumps the NEWEST ticket added to the array (the last one)
         newest_ticket = live_tickets[-1]
         
-        # This button is explicitly marked type="primary" to be caught by the JS Spacebar Hack
         if st.button(f"BUMP NEWEST OVERALL (#{newest_ticket['order_id']}) [SPACE BAR]", key="btn_bump_newest", type="primary", use_container_width=True): 
             bump_kitchen_ticket(newest_ticket['order_id'])
             st.rerun()
