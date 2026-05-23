@@ -121,12 +121,15 @@ def inject_styles():
             background-color: #111111 !important;
             border: 2px solid #333 !important;
             border-radius: 12px !important;
-            height: 5.5rem !important;
-            margin-bottom: 1rem !important;
+            height: 7rem !important;
+            width: 80% !important;
+            max-width: 320px !important;
+            margin: 0 auto 1rem auto !important;
         }}
         div[data-baseweb="input"] input {{
             color: {SystemConfig.PRIMARY_COLOR} !important;
-            font-size: 2.5rem !important;
+            font-size: 4rem !important;
+            letter-spacing: 0.2rem;
             text-align: center !important;
             -webkit-text-security: disc;
         }}
@@ -304,13 +307,13 @@ def process_order(payment_method, total_price):
 # 4. NATIVE MOBILE LOGIN ROUTER 
 # ==========================================
 def render_login():
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
     try: 
         st.image(SystemConfig.LOGO_PATH, use_container_width=True)
     except: 
-        st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif; font-size: 4rem;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
         
-    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 2.5rem; margin-bottom: 0.5rem;'>Enter Number.</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3.5rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.2;'>ENTER<br>NUMBER</h3>", unsafe_allow_html=True)
         
     # Native Trigger: No clunky on-screen grid. Type password summons native numpad.
     entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
