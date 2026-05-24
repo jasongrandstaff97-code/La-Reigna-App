@@ -133,7 +133,7 @@ def inject_styles():
         /* MASSIVE BUTTONS FOR ELDER THUMBS */
         div.stButton > button {{ 
             width: 100%; 
-            min-height: 80px !important; /* Increased for huge tap target */
+            min-height: 80px !important; 
             height: auto !important; 
             background-color: #1a1a1a !important; 
             border: 2px solid #555 !important; 
@@ -142,7 +142,7 @@ def inject_styles():
             font-weight: 800 !important; 
             text-transform: uppercase; 
             transition: 0.1s ease-in-out; 
-            font-size: 20px !important; /* Huge text */
+            font-size: 20px !important; 
             padding: 15px 10px !important; 
             white-space: normal !important; 
             line-height: 1.2 !important;
@@ -164,7 +164,7 @@ def inject_styles():
             background-color: #0a0a0a !important;
         }}
         [data-testid="stExpander"] summary p {{
-            font-size: 2.2rem !important; /* Huge category titles */
+            font-size: 2.2rem !important; 
             font-weight: 800 !important;
             color: {SystemConfig.PRIMARY_COLOR} !important;
             text-transform: uppercase;
@@ -185,7 +185,7 @@ def inject_styles():
         /* MANIFEST / CART */
         .manifest-container {{ background: #0a0a0a; border: 2px solid #333; border-radius: 16px; padding: 25px; margin-top: 30px; }}
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 2rem; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; text-align: center; }}
-        .receipt-row {{ display: flex; justify-content: space-between; padding: 12px 0; color: #ddd; font-size: 1.5rem; font-weight: 600; }}
+        .receipt-row {{ display: flex; justify-content: space-between; padding: 12px 0; color: #ddd; font-size: 1.5rem; font-weight: 600; align-items: center; }}
         .manifest-total {{ border-top: 3px dashed #444; padding-top: 20px; margin-top: 20px; font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
 
         .kds-card {{ background-color: #080808; padding: 25px; border-radius: 12px; margin-bottom: 15px; border-left: 12px solid #333; border-top: 2px solid #222; border-right: 2px solid #222; border-bottom: 2px solid #222; }}
@@ -195,8 +195,6 @@ def inject_styles():
 
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 2px solid #333; padding: 15px 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 18px; }}
-        
-        .locked-category {{ margin-top: 1.5rem; color: #555 !important; border: 2px dashed #333; border-radius: 12px; padding: 20px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; text-align: center; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -269,10 +267,6 @@ def get_master_menu():
         "Desserts": [
             {"id": "DS1", "name": "Golden Churros", "desc": "Crispy churros tossed in cinnamon sugar.", "price": 6.50},
             {"id": "DS2", "name": "Tres Leches", "desc": "Classic sponge cake soaked in three milks.", "price": 7.00}
-        ],
-        "La Reserva": [
-            {"id": "R1", "name": "Wagyu Birria Tacos", "desc": "Elite Wagyu beef, consome, Oaxacan cheese.", "price": 24.00},
-            {"id": "R2", "name": "The Queen's Flight", "desc": "Three rare aged reposados, hand-selected.", "price": 35.00}
         ]
     }
 
@@ -317,8 +311,9 @@ def render_login():
         
     st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3.5rem; font-weight: 800; margin-bottom: 2rem; line-height: 1.2;'>ENTER NUMBER</h3>", unsafe_allow_html=True)
         
-    # Standard text input so the numbers are fully visible
-    entry = st.text_input("Login", key="login_entry", label_visibility="collapsed")
+    col1, col2, col3 = st.columns([1, 8, 1])
+    with col2:
+        entry = st.text_input("Login", key="login_entry", label_visibility="collapsed")
         
     if entry:
         if len(entry) == 6:
@@ -379,14 +374,8 @@ def render_ordering_os():
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ACCORDION LOGIC: Using Expanders
+    # ACCORDION LOGIC
     for cat in categories:
-        if cat == "La Reserva":
-            pts = st.session_state.get('reward_points', 0)
-            if pts < 5000 and st.session_state.phone_number != "STAFF":
-                st.markdown(f"<div class='locked-category'>🔒 {cat}<br><span style='font-size:1.2rem; color:#888;'>Requires 5000 Pts</span></div>", unsafe_allow_html=True)
-                continue
-                
         with st.expander(f"{cat}", expanded=False):
             for item in menu[cat]:
                 st.markdown(f"""
@@ -403,14 +392,28 @@ def render_ordering_os():
 
     # Checkout Section
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
+    
     if not st.session_state.cart: 
         st.markdown("<h3 style='text-align:center; color:#666;'>Cart is Empty</h3>", unsafe_allow_html=True)
     else:
+        # INDIVIDUAL ITEM REMOVE LOGIC
+        for i, item in enumerate(st.session_state.cart):
+            col_info, col_btn = st.columns([6, 4], gap="small")
+            with col_info:
+                st.markdown(f'<div class="receipt-row" style="margin-top:15px; flex-direction:column; align-items:flex-start;"><span>{item["name"]}</span><span style="color:{SystemConfig.PRIMARY_COLOR}; font-weight:800;">${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
+            with col_btn:
+                # Big, clear elder-friendly drop button
+                st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
+                if st.button("❌ DROP", key=f"drop_{i}"):
+                    st.session_state.cart.pop(i)
+                    st.rerun()
+            st.markdown("<hr style='border-top:1px solid #333; margin:5px 0;'>", unsafe_allow_html=True)
+
+        # TOTALS
         subtotal = sum(i['price'] for i in st.session_state.cart)
         tax = subtotal * SystemConfig.TAX_RATE
         total = subtotal + tax
-        for item in st.session_state.cart: 
-            st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
+        
         st.markdown(f"""<div style="margin-top: 20px; color: #aaa; font-size: 1.5rem;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
