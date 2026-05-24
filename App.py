@@ -195,10 +195,13 @@ def inject_styles():
 
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 2px solid #333; padding: 15px 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 18px; }}
+        
+        .locked-category {{ margin-top: 1.5rem; color: #555 !important; border: 2px dashed #333; border-radius: 12px; padding: 20px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; text-align: center; }}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
+    # Spacebar triggers whatever button has kind="primary"
     components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
@@ -402,7 +405,6 @@ def render_ordering_os():
             with col_info:
                 st.markdown(f'<div class="receipt-row" style="margin-top:15px; flex-direction:column; align-items:flex-start;"><span>{item["name"]}</span><span style="color:{SystemConfig.PRIMARY_COLOR}; font-weight:800;">${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
             with col_btn:
-                # Big, clear elder-friendly drop button
                 st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
                 if st.button("❌ DROP", key=f"drop_{i}"):
                     st.session_state.cart.pop(i)
@@ -435,7 +437,7 @@ def render_ordering_os():
             st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
 
 # ==========================================
-# 6. KDS UI
+# 6. KDS UI (FIXED: FIFO ORDER)
 # ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
@@ -464,10 +466,12 @@ def render_kds():
     if not live_tickets: 
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px; font-size:3rem;'>KITCHEN CLEAR.</h2>", unsafe_allow_html=True)
     else:
-        newest_ticket = live_tickets[-1]
+        # FIFO BUMP: Bumps the OLDEST ticket in the queue (the first one)
+        oldest_ticket = live_tickets[0]
         
-        if st.button(f"BUMP NEWEST OVERALL (#{newest_ticket['order_id']}) [SPACE BAR]", key="btn_bump_newest", type="primary", use_container_width=True): 
-            bump_kitchen_ticket(newest_ticket['order_id'])
+        # This button is explicitly marked type="primary" to be caught by the JS Spacebar Hack
+        if st.button(f"BUMP OLDEST (#{oldest_ticket['order_id']}) [SPACE BAR]", key="btn_bump_oldest", type="primary", use_container_width=True): 
+            bump_kitchen_ticket(oldest_ticket['order_id'])
             st.rerun()
             
         st.markdown("<br>", unsafe_allow_html=True)
