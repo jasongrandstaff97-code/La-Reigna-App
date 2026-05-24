@@ -73,7 +73,7 @@ def bump_kitchen_ticket(order_id):
     with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
 
 # ==========================================
-# 2. SYSTEM CONFIG & STYLES (Mobile-Native UI)
+# 2. SYSTEM CONFIG & STYLES (Elder-Friendly UI)
 # ==========================================
 st.set_page_config(page_title=f"{SystemConfig.RESTAURANT_NAME} OS", layout="wide", initial_sidebar_state="collapsed")
 
@@ -85,7 +85,7 @@ def inject_styles():
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
     
     padding = "1rem 0.5rem" if is_mobile else "3rem 5rem"
-    max_width = "480px" if is_mobile else "1600px"
+    max_width = "500px" if is_mobile else "1600px"
 
     st.markdown(f"""
         <style>
@@ -106,38 +106,44 @@ def inject_styles():
         
         h1, h2, h3, h4, p, div, span {{ color: #FFFFFF !important; }}
 
+        /* UNMASKED & ENLARGED LOGIN INPUT */
         .stTextInput div[data-baseweb="input"] {{
             background-color: #111111 !important;
-            border: 2px solid #333 !important;
-            border-radius: 12px !important;
+            border: 3px solid #444 !important;
+            border-radius: 16px !important;
+            height: 7rem !important;
+            width: 90% !important;
+            max-width: 380px !important;
+            margin: 0 auto 1rem auto !important;
         }}
         .stTextInput input {{
             background-color: transparent !important;
             color: {SystemConfig.PRIMARY_COLOR} !important;
             font-size: 3.5rem !important;
+            font-weight: 800 !important;
             height: 6rem !important;
             text-align: center !important;
-            letter-spacing: 0.5rem;
-            -webkit-text-security: disc;
+            letter-spacing: 0.4rem;
         }}
         .stTextInput div[data-baseweb="input"]:focus-within {{
             border-color: {SystemConfig.PURPLE_GLOW} !important;
-            box-shadow: 0 0 20px {SystemConfig.PURPLE_GLOW} !important;
+            box-shadow: 0 0 25px {SystemConfig.PURPLE_GLOW} !important;
         }}
 
+        /* MASSIVE BUTTONS FOR ELDER THUMBS */
         div.stButton > button {{ 
             width: 100%; 
-            min-height: 55px !important;
+            min-height: 80px !important; /* Increased for huge tap target */
             height: auto !important; 
-            background-color: #111 !important; 
-            border: 2px solid #444 !important; 
+            background-color: #1a1a1a !important; 
+            border: 2px solid #555 !important; 
             color: #FFF !important; 
-            border-radius: 8px !important; 
+            border-radius: 12px !important; 
             font-weight: 800 !important; 
             text-transform: uppercase; 
             transition: 0.1s ease-in-out; 
-            font-size: 16px !important; 
-            padding: 8px 5px !important; 
+            font-size: 20px !important; /* Huge text */
+            padding: 15px 10px !important; 
             white-space: normal !important; 
             line-height: 1.2 !important;
         }}
@@ -146,30 +152,51 @@ def inject_styles():
             background-color: {SystemConfig.PURPLE_GLOW} !important; 
             color: white !important; 
             border: 2px solid #9D50BB !important; 
-            box-shadow: 0 0 25px rgba(106, 13, 173, 0.9) !important; 
+            box-shadow: 0 0 30px rgba(106, 13, 173, 0.9) !important; 
             transform: scale(0.96) !important; 
         }}
         
-        .menu-card {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px 15px; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; }}
-        .item-title {{ font-size: 22px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 6px; }}
-        .item-desc {{ color: #aaa !important; font-size: 15px !important; margin-bottom: 15px; line-height: 1.4; }}
-        .price-tag {{ font-size: 20px !important; font-weight: 700; color: #FFF; }}
+        /* ACCORDION (EXPANDER) STYLING */
+        [data-testid="stExpander"] {{
+            border: 2px solid #333 !important;
+            border-radius: 16px !important;
+            margin-bottom: 20px !important;
+            background-color: #0a0a0a !important;
+        }}
+        [data-testid="stExpander"] summary p {{
+            font-size: 2.2rem !important; /* Huge category titles */
+            font-weight: 800 !important;
+            color: {SystemConfig.PRIMARY_COLOR} !important;
+            text-transform: uppercase;
+            padding: 10px 0 !important;
+        }}
+        [data-testid="stExpander"] summary svg {{
+            width: 30px !important;
+            height: 30px !important;
+            color: {SystemConfig.PRIMARY_COLOR} !important;
+        }}
         
-        .manifest-container {{ background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-top: 25px; }}
-        .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 1.5rem; border-bottom: 1px solid #222; padding-bottom: 10px; margin-bottom: 15px; }}
-        .receipt-row {{ display: flex; justify-content: space-between; padding: 8px 0; color: #aaa; font-size: 1.2rem; }}
-        .manifest-total {{ border-top: 2px dashed #333; padding-top: 15px; margin-top: 15px; font-size: 2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
-
-        .kds-card {{ background-color: #080808; padding: 25px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #333; border-top: 1px solid #222; border-right: 1px solid #222; border-bottom: 1px solid #222; }}
-        .ticket-id {{ font-size: 2.2rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
-        .ticket-phone {{ font-size: 1.2rem; color: #888; font-weight: 400; }}
-        .ticket-items {{ font-size: 1.6rem; color: #FFF; margin-top: 15px; line-height: 1.5; }}
-
-        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 1px solid #333; padding: 12px 15px; border-radius: 10px; margin: 15px 0; }}
-        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 16px; }}
+        /* MENU CARDS - HIGH CONTRAST & HUGE FONTS */
+        .menu-card {{ background: transparent; border-bottom: 2px dashed #333; padding: 25px 5px; margin-bottom: 10px; display: flex; flex-direction: column; justify-content: space-between; }}
+        .item-title {{ font-size: 26px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 10px; line-height: 1.2; }}
+        .item-desc {{ color: #e0e0e0 !important; font-size: 18px !important; margin-bottom: 20px; line-height: 1.5; font-weight: 500; }}
+        .price-tag {{ font-size: 24px !important; font-weight: 800; color: #FFF; margin-bottom: 15px; }}
         
-        .category-header {{ margin-top: 2.5rem; color: {SystemConfig.PRIMARY_COLOR} !important; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; }}
-        .locked-category {{ margin-top: 2.5rem; color: #555 !important; border-bottom: 1px solid #333; padding-bottom: 5px; text-transform: uppercase; font-size: 1.5rem; font-weight: 800; }}
+        /* MANIFEST / CART */
+        .manifest-container {{ background: #0a0a0a; border: 2px solid #333; border-radius: 16px; padding: 25px; margin-top: 30px; }}
+        .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 2rem; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; text-align: center; }}
+        .receipt-row {{ display: flex; justify-content: space-between; padding: 12px 0; color: #ddd; font-size: 1.5rem; font-weight: 600; }}
+        .manifest-total {{ border-top: 3px dashed #444; padding-top: 20px; margin-top: 20px; font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; }}
+
+        .kds-card {{ background-color: #080808; padding: 25px; border-radius: 12px; margin-bottom: 15px; border-left: 12px solid #333; border-top: 2px solid #222; border-right: 2px solid #222; border-bottom: 2px solid #222; }}
+        .ticket-id {{ font-size: 2.5rem; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; display: flex; justify-content: space-between; align-items: center; }}
+        .ticket-phone {{ font-size: 1.4rem; color: #888; font-weight: 400; }}
+        .ticket-items {{ font-size: 1.8rem; color: #FFF; margin-top: 15px; line-height: 1.6; font-weight: bold; }}
+
+        .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 2px solid #333; padding: 15px 20px; border-radius: 12px; margin: 20px 0; }}
+        .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 18px; }}
+        
+        .locked-category {{ margin-top: 1.5rem; color: #555 !important; border: 2px dashed #333; border-radius: 12px; padding: 20px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; text-align: center; }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -286,13 +313,12 @@ def render_login():
     try: 
         st.image(SystemConfig.LOGO_PATH, use_container_width=True)
     except: 
-        st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif; font-size: 4rem;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
+        st.markdown(f"<h1 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; font-family:serif; font-size: 4.5rem; font-weight:bold;'>{SystemConfig.RESTAURANT_NAME}</h1>", unsafe_allow_html=True)
         
-    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3rem; font-weight: 800; margin-bottom: 2rem; line-height: 1.2;'>ENTER<br>NUMBER</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center; color:#FFF; font-size: 3.5rem; font-weight: 800; margin-bottom: 2rem; line-height: 1.2;'>ENTER NUMBER</h3>", unsafe_allow_html=True)
         
-    col1, col2, col3 = st.columns([1, 8, 1])
-    with col2:
-        entry = st.text_input("Login", key="login_entry", type="password", label_visibility="collapsed")
+    # Standard text input so the numbers are fully visible
+    entry = st.text_input("Login", key="login_entry", label_visibility="collapsed")
         
     if entry:
         if len(entry) == 6:
@@ -316,22 +342,22 @@ def render_login():
             st.rerun()
 
 # ==========================================
-# 5. UNIFIED ORDERING UI (Vertical Scroll)
+# 5. UNIFIED ORDERING UI (Accordion Menus)
 # ==========================================
 def render_ordering_os():
     try: 
         st.image(SystemConfig.LOGO_PATH, use_container_width=True)
     except: 
-        st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:0;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
+        st.markdown(f"<h2 style='text-align:center; color:{SystemConfig.PRIMARY_COLOR}; margin-bottom:1rem; font-size:3rem;'>{SystemConfig.RESTAURANT_NAME}</h2>", unsafe_allow_html=True)
 
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
 
     if st.session_state.phone_number == "STAFF":
-        staff_c1, staff_c2 = st.columns([0.7, 0.3])
+        staff_c1, staff_c2 = st.columns([0.6, 0.4])
         with staff_c1:
-            st.markdown("""<div style='background:#111; padding:15px; border-radius:8px; border:2px solid #333; margin-bottom:15px;'><h4 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h4></div>""", unsafe_allow_html=True)
+            st.markdown("""<div style='background:#111; padding:20px; border-radius:12px; border:2px solid #333; margin-bottom:15px;'><h3 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h3></div>""", unsafe_allow_html=True)
         with staff_c2:
-            btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+            btn_text = "🖥️ DESKTOP" if is_mobile else "📱 MOBILE"
             if st.button(btn_text, key="staff_view_toggle", use_container_width=True):
                 st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
                 st.rerun()
@@ -341,56 +367,63 @@ def render_ordering_os():
         progress = min(int((pts / target) * 100), 100)
         st.markdown(f"""
             <div class="status-engine" style="border-color: {t_color};">
-                <div class="status-header"><span style="color: {t_color};">{tier} | {st.session_state.phone_number}</span><span>{pts} / {target} PTS</span></div>
-                <div style="width: 100%; background: #222; height: 6px; border-radius: 3px; overflow: hidden; margin-top:8px;">
+                <div class="status-header"><span style="color: {t_color};">{tier}</span><span>{pts} PTS</span></div>
+                <div style="width: 100%; background: #222; height: 10px; border-radius: 5px; overflow: hidden; margin-top:12px;">
                     <div style="width: {progress}%; background: {t_color}; height: 100%;"></div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
     menu = get_master_menu()
-    
-    # ALPHABETIZE THE CATEGORIES
     categories = sorted(list(menu.keys()))
     
-    # RENDER ALL CATEGORIES IN A SINGLE VERTICAL STACK
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # ACCORDION LOGIC: Using Expanders
     for cat in categories:
         if cat == "La Reserva":
             pts = st.session_state.get('reward_points', 0)
             if pts < 5000 and st.session_state.phone_number != "STAFF":
-                st.markdown(f"<div class='locked-category'>🔒 {cat} (REQUIRES 5000 PTS)</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='locked-category'>🔒 {cat}<br><span style='font-size:1.2rem; color:#888;'>Requires 5000 Pts</span></div>", unsafe_allow_html=True)
                 continue
                 
-        st.markdown(f"<div class='category-header'>{cat}</div>", unsafe_allow_html=True)
-        
-        for item in menu[cat]:
-            st.markdown(f"""<div class="menu-card"><div><div class="item-title">{item['name']}</div><div class="item-desc">{item['desc']}</div></div><div class="price-tag">${item['price']:.2f}</div></div>""", unsafe_allow_html=True)
-            if st.button(f"+ ADD TO CART", key=f"add_{item['id']}", use_container_width=True):
-                st.session_state.cart.append(item); st.toast(f"Added {item['name']}"); st.rerun()
+        with st.expander(f"{cat}", expanded=False):
+            for item in menu[cat]:
+                st.markdown(f"""
+                <div class="menu-card">
+                    <div class="item-title">{item['name']}</div>
+                    <div class="price-tag">${item['price']:.2f}</div>
+                    <div class="item-desc">{item['desc']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button(f"+ ADD TO CART", key=f"add_{item['id']}", use_container_width=True):
+                    st.session_state.cart.append(item)
+                    st.toast(f"Added {item['name']}")
+                    st.rerun()
 
-    # Checkout Section at the Bottom
+    # Checkout Section
     st.markdown('<div class="manifest-container"><div class="manifest-header">CURRENT ORDER</div>', unsafe_allow_html=True)
     if not st.session_state.cart: 
-        st.write("YOUR SELECTIONS WILL APPEAR HERE.")
+        st.markdown("<h3 style='text-align:center; color:#666;'>Cart is Empty</h3>", unsafe_allow_html=True)
     else:
         subtotal = sum(i['price'] for i in st.session_state.cart)
         tax = subtotal * SystemConfig.TAX_RATE
         total = subtotal + tax
         for item in st.session_state.cart: 
             st.markdown(f'<div class="receipt-row"><span>{item["name"]}</span><span>${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
-        st.markdown(f"""<div style="margin-top: 15px; color: #666; font-size: 14px;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="margin-top: 20px; color: #aaa; font-size: 1.5rem;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
 
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br><br>", unsafe_allow_html=True)
         st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 2px solid #9D50BB !important; font-size: 20px !important; height: 80px !important; box-shadow: 0 0 25px rgba(106, 13, 173, 0.6) !important; margin-top: 10px; }</style>""", unsafe_allow_html=True)
+        st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 3px solid #9D50BB !important; font-size: 24px !important; height: 100px !important; box-shadow: 0 0 30px rgba(106, 13, 173, 0.8) !important; margin-top: 15px; }</style>""", unsafe_allow_html=True)
         if st.button("FIRE TO KITCHEN", key="btn_place_order", use_container_width=True): 
             process_order("In-Store POS", total)
             
-    st.markdown('</div><br>', unsafe_allow_html=True)
+    st.markdown('</div><br><br>', unsafe_allow_html=True)
     
-    col1, col2 = st.columns(2, gap="small")
+    col1, col2 = st.columns(2, gap="medium")
     with col1:
         if st.button("Clear Cart", type="secondary"): 
             st.session_state.cart = []; st.rerun()
@@ -426,7 +459,7 @@ def render_kds():
             st.rerun()
         
     if not live_tickets: 
-        st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px;'>KITCHEN CLEAR. NO ACTIVE TICKETS.</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px; font-size:3rem;'>KITCHEN CLEAR.</h2>", unsafe_allow_html=True)
     else:
         newest_ticket = live_tickets[-1]
         
@@ -438,29 +471,29 @@ def render_kds():
         col_dine, col_togo = st.columns(2)
         
         with col_dine:
-            st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 2px solid #2E7D32; padding-bottom: 10px;'>🍽️ DINE-IN EXPO</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 3px solid #2E7D32; padding-bottom: 10px; font-size:2.5rem;'>🍽️ DINE-IN EXPO</h3>", unsafe_allow_html=True)
             if not dine_in_tickets: 
-                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px; font-size:2rem;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
             else:
                 for order in dine_in_tickets:
                     item_counts = {}
                     for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
                     formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
-                    st.markdown(f"""<div class="kds-card" style="border-left-color: #2E7D32;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="kds-card" style="border-left-color: #2E7D32;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:1.5rem; margin-bottom:15px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
                     if st.button(f"DONE #{order['order_id']}", key=f"d_{order['order_id']}"): 
                         bump_kitchen_ticket(order['order_id'])
                         st.rerun()
                         
         with col_togo:
-            st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 2px solid #D32F2F; padding-bottom: 10px;'>🛍️ TO-GO BAGGING</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 3px solid #D32F2F; padding-bottom: 10px; font-size:2.5rem;'>🛍️ TO-GO BAGGING</h3>", unsafe_allow_html=True)
             if not to_go_tickets: 
-                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
+                st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px; font-size:2rem;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
             else:
                 for order in to_go_tickets:
                     item_counts = {}
                     for item in order['items']: item_counts[item] = item_counts.get(item, 0) + 1
                     formatted_items = [f"{count}x {name}" for name, count in item_counts.items()]
-                    st.markdown(f"""<div class="kds-card" style="border-left-color: #D32F2F;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:14px; margin-bottom:10px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div class="kds-card" style="border-left-color: #D32F2F;"><div class="ticket-id"><span>#{order['order_id']}</span><span class="ticket-phone">{order.get('phone', 'UNKNOWN')}</span></div><div style="color:#888; font-size:1.5rem; margin-bottom:15px;">{order['timestamp']}</div><div class="ticket-items">{'<br>'.join(formatted_items)}</div></div>""", unsafe_allow_html=True)
                     if st.button(f"DONE #{order['order_id']}", key=f"t_{order['order_id']}"): 
                         bump_kitchen_ticket(order['order_id'])
                         st.rerun()
@@ -471,7 +504,7 @@ def render_kds():
 # 7. ADMIN OS
 # ==========================================
 def render_admin_os():
-    st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR};'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color:{SystemConfig.PRIMARY_COLOR}; font-size:3rem;'>LA REINA // EXECUTIVE DASHBOARD</h1><hr style='border-color: #333;'>", unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     with col1:
@@ -496,14 +529,14 @@ def render_admin_os():
     
     st.markdown("<br>", unsafe_allow_html=True)
     m1, m2, m3 = st.columns(3)
-    with m1: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>GROSS REVENUE</div><div style='font-size:2.5rem; font-weight:bold; color:{SystemConfig.PRIMARY_COLOR};'>${total_rev:.2f}</div></div>""", unsafe_allow_html=True)
-    with m2: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>TOTAL TICKETS</div><div style='font-size:2.5rem; font-weight:bold; color:#FFF;'>{total_ords}</div></div>""", unsafe_allow_html=True)
-    with m3: st.markdown(f"""<div style='background: #1a1a1a; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #333;'><div style='color:#888;'>AVERAGE ORDER</div><div style='font-size:2.5rem; font-weight:bold; color:#FFF;'>${aov:.2f}</div></div>""", unsafe_allow_html=True)
+    with m1: st.markdown(f"""<div style='background: #1a1a1a; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #333;'><div style='color:#888; font-size:1.5rem; font-weight:bold;'>GROSS REVENUE</div><div style='font-size:3.5rem; font-weight:800; color:{SystemConfig.PRIMARY_COLOR};'>${total_rev:.2f}</div></div>""", unsafe_allow_html=True)
+    with m2: st.markdown(f"""<div style='background: #1a1a1a; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #333;'><div style='color:#888; font-size:1.5rem; font-weight:bold;'>TOTAL TICKETS</div><div style='font-size:3.5rem; font-weight:800; color:#FFF;'>{total_ords}</div></div>""", unsafe_allow_html=True)
+    with m3: st.markdown(f"""<div style='background: #1a1a1a; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #333;'><div style='color:#888; font-size:1.5rem; font-weight:bold;'>AVERAGE ORDER</div><div style='font-size:3.5rem; font-weight:800; color:#FFF;'>${aov:.2f}</div></div>""", unsafe_allow_html=True)
 
-    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 40px;'>⚡ LIVE TRANSACTION LOG</h3><div style='background: #111; border: 1px solid #333; border-radius: 8px; padding: 20px; height: 400px; overflow-y: scroll;'>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 50px; font-size:2.5rem;'>⚡ LIVE TRANSACTION LOG</h3><div style='background: #111; border: 2px solid #333; border-radius: 12px; padding: 25px; height: 500px; overflow-y: scroll;'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
         sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
-        st.markdown(f"""<div style="border-bottom: 1px solid #222; padding-bottom: 15px; margin-bottom: 15px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: bold; font-size: 1.5rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 14px;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #888; font-size: 16px; margin-top: 5px;">{order['type']} | {order.get('phone', 'N/A')} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style="border-bottom: 2px solid #222; padding-bottom: 20px; margin-bottom: 20px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 1.5rem;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #ccc; font-size: 1.8rem; margin-top: 10px; font-weight:600;">{order['type']} | {order.get('phone', 'N/A')} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     st_autorefresh(interval=15000, key="admin_refresh")
 
