@@ -36,12 +36,13 @@ def sync_user_data(phone_number):
         save_db(db)
     st.session_state.reward_points = db[phone_number]["points"]
 
-def update_user_points(phone_number, points_to_add):
+def modify_points(phone_number, amount, is_checkout=False):
     if not phone_number or phone_number == "STAFF": return
     db = load_db()
     if phone_number in db:
-        db[phone_number]["points"] += points_to_add
-        db[phone_number]["lifetime_orders"] += 1
+        db[phone_number]["points"] += amount
+        if is_checkout:
+            db[phone_number]["lifetime_orders"] += 1
         save_db(db)
         st.session_state.reward_points = db[phone_number]["points"]
 
@@ -85,7 +86,7 @@ def inject_styles():
     is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
     
     padding = "1rem 0.5rem" if is_mobile else "3rem 5rem"
-    max_width = "500px" if is_mobile else "1600px"
+    max_width = "430px" if is_mobile else "1600px"
 
     st.markdown(f"""
         <style>
@@ -106,14 +107,12 @@ def inject_styles():
         
         h1, h2, h3, h4, p, div, span {{ color: #FFFFFF !important; }}
 
-        /* UNMASKED & ENLARGED LOGIN INPUT */
         .stTextInput div[data-baseweb="input"] {{
             background-color: #111111 !important;
             border: 3px solid #444 !important;
             border-radius: 16px !important;
             height: 7rem !important;
-            width: 90% !important;
-            max-width: 380px !important;
+            width: 100% !important;
             margin: 0 auto 1rem auto !important;
         }}
         .stTextInput input {{
@@ -130,7 +129,6 @@ def inject_styles():
             box-shadow: 0 0 25px {SystemConfig.PURPLE_GLOW} !important;
         }}
 
-        /* MASSIVE BUTTONS FOR ELDER THUMBS */
         div.stButton > button {{ 
             width: 100%; 
             min-height: 80px !important; 
@@ -156,7 +154,6 @@ def inject_styles():
             transform: scale(0.96) !important; 
         }}
         
-        /* ACCORDION (EXPANDER) STYLING */
         [data-testid="stExpander"] {{
             border: 2px solid #333 !important;
             border-radius: 16px !important;
@@ -176,13 +173,13 @@ def inject_styles():
             color: {SystemConfig.PRIMARY_COLOR} !important;
         }}
         
-        /* MENU CARDS - HIGH CONTRAST & HUGE FONTS */
         .menu-card {{ background: transparent; border-bottom: 2px dashed #333; padding: 25px 5px; margin-bottom: 10px; display: flex; flex-direction: column; justify-content: space-between; }}
+        .reward-card {{ background: linear-gradient(145deg, #1a1a1a, #2a2a2a); border: 2px solid {SystemConfig.PRIMARY_COLOR}; border-radius: 12px; padding: 25px 15px; margin-bottom: 15px; display: flex; flex-direction: column; justify-content: space-between; }}
+        
         .item-title {{ font-size: 26px !important; font-weight: 800; color: {SystemConfig.PRIMARY_COLOR}; margin-bottom: 10px; line-height: 1.2; }}
         .item-desc {{ color: #e0e0e0 !important; font-size: 18px !important; margin-bottom: 20px; line-height: 1.5; font-weight: 500; }}
         .price-tag {{ font-size: 24px !important; font-weight: 800; color: #FFF; margin-bottom: 15px; }}
         
-        /* MANIFEST / CART */
         .manifest-container {{ background: #0a0a0a; border: 2px solid #333; border-radius: 16px; padding: 25px; margin-top: 30px; }}
         .manifest-header {{ color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 2rem; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; text-align: center; }}
         .receipt-row {{ display: flex; justify-content: space-between; padding: 12px 0; color: #ddd; font-size: 1.5rem; font-weight: 600; align-items: center; }}
@@ -195,18 +192,22 @@ def inject_styles():
 
         .status-engine {{ background: linear-gradient(90deg, #111, #1a1a1a); border: 2px solid #333; padding: 15px 20px; border-radius: 12px; margin: 20px 0; }}
         .status-header {{ display: flex; justify-content: space-between; color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; text-transform: uppercase; font-size: 18px; }}
-        
-        .locked-category {{ margin-top: 1.5rem; color: #555 !important; border: 2px dashed #333; border-radius: 12px; padding: 20px; text-transform: uppercase; font-size: 1.8rem; font-weight: 800; text-align: center; }}
         </style>
     """, unsafe_allow_html=True)
 
 def inject_kds_keyboard_hack():
-    # Spacebar triggers whatever button has kind="primary"
     components.html("""<script>const doc = window.parent.document; if (!doc.getElementById('kds-spacebar-hack')) { const script = doc.createElement('script'); script.id = 'kds-spacebar-hack'; script.innerHTML = `document.addEventListener('keydown', function(e) { if (e.target.tagName.toLowerCase() === 'input') return; if (e.code === 'Space' || e.key === ' ') { e.preventDefault(); const bumpBtn = document.querySelector('button[kind="primary"]'); if (bumpBtn) { bumpBtn.click(); } } });`; doc.head.appendChild(script); } window.parent.focus();</script>""", height=0, width=0)
 
 # ==========================================
-# 3. MENU DATA
+# 3. MENU & REWARDS DATA
 # ==========================================
+REWARDS_CATALOG = [
+    {"id": "REW1", "name": "Free Fountain Drink", "cost": 300, "desc": "Any refreshing beverage on us."},
+    {"id": "REW2", "name": "Free Queso Casero", "cost": 500, "desc": "Our famous house-made queso dip."},
+    {"id": "REW3", "name": "Free Dessert", "cost": 750, "desc": "Choice of Golden Churros or Tres Leches."},
+    {"id": "REW4", "name": "Free Entree", "cost": 1500, "desc": "Any main entree on the house."}
+]
+
 def get_master_menu():
     return {
         "Appetizers": [
@@ -274,16 +275,23 @@ def get_master_menu():
     }
 
 def get_tier_info(pts):
-    if pts < 500: return "POBLANO 🫑", 500, "JALAPEÑO", "#7FFF00"
-    elif pts < 5000: return "JALAPEÑO 🌶️", 5000, "HABANERO", "#FFA500"
-    else: return "HABANERO 🔥", 10000, "EL REY", "#D4AF37"
+    if pts < 500: return "POBLANO", 500, "JALAPEÑO", "#7FFF00"
+    elif pts < 5000: return "JALAPEÑO", 5000, "HABANERO", "#FFA500"
+    else: return "HABANERO", 10000, "EL REY", "#D4AF37"
 
 def init_session():
     if 'view_mode' not in st.session_state: st.session_state.view_mode = "login"
     if 'layout_mode' not in st.session_state: st.session_state.layout_mode = "Mobile"
     if 'cart' not in st.session_state: st.session_state.cart = []
     if 'phone_number' not in st.session_state: st.session_state.phone_number = "STAFF"
-    if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN 🍽️"
+    if 'order_type' not in st.session_state: st.session_state.order_type = "DINE-IN"
+
+def refund_cart_points():
+    """Refunds points for any rewards dropped or cleared from the cart."""
+    for item in st.session_state.cart:
+        if item.get("is_reward"):
+            modify_points(st.session_state.phone_number, item["cost"])
+    st.session_state.cart = []
 
 def process_order(payment_method, total_price):
     with st.spinner(f"Initiating Order Sequence..."):
@@ -293,9 +301,13 @@ def process_order(payment_method, total_price):
     sales = get_sales_data()
     order_id = f"{len(sales) + 1:03}" 
     
+    # Earn points on the cash total of the order
     pts_earned = int(total_price)
-    update_user_points(st.session_state.phone_number, pts_earned)
+    modify_points(st.session_state.phone_number, pts_earned, is_checkout=True)
+    
     log_transaction(order_id, st.session_state.order_type, st.session_state.cart, total_price, st.session_state.phone_number)
+    
+    # Clear cart without refunding
     st.session_state.cart = []
     st.success(f"Order #{order_id} sent to kitchen.")
     time.sleep(1)
@@ -355,7 +367,7 @@ def render_ordering_os():
         with staff_c1:
             st.markdown("""<div style='background:#111; padding:20px; border-radius:12px; border:2px solid #333; margin-bottom:15px;'><h3 style='color:#D4AF37; margin:0; text-align:center;'>STAFF PORTAL</h3></div>""", unsafe_allow_html=True)
         with staff_c2:
-            btn_text = "🖥️ DESKTOP" if is_mobile else "📱 MOBILE"
+            btn_text = "DESKTOP" if is_mobile else "MOBILE"
             if st.button(btn_text, key="staff_view_toggle", use_container_width=True):
                 st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
                 st.rerun()
@@ -372,12 +384,35 @@ def render_ordering_os():
             </div>
         """, unsafe_allow_html=True)
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # REWARDS BAZAAR LOGIC
+    if st.session_state.phone_number != "STAFF":
+        with st.expander("REWARDS", expanded=False):
+            current_pts = st.session_state.get('reward_points', 0)
+            for reward in REWARDS_CATALOG:
+                st.markdown(f"""
+                <div class="reward-card">
+                    <div class="item-title">{reward['name']}</div>
+                    <div class="price-tag">{reward['cost']} PTS</div>
+                    <div class="item-desc">{reward['desc']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                if current_pts >= reward['cost']:
+                    if st.button(f"UNLOCK ({reward['cost']} PTS)", key=f"rew_{reward['id']}", use_container_width=True):
+                        modify_points(st.session_state.phone_number, -reward['cost'])
+                        reward_item = {"id": reward['id'], "name": f"{reward['name']}", "price": 0.00, "is_reward": True, "cost": reward['cost']}
+                        st.session_state.cart.append(reward_item)
+                        st.toast(f"Redeemed {reward['name']}")
+                        st.rerun()
+                else:
+                    st.button(f"NEED {reward['cost']} PTS", key=f"lock_{reward['id']}", disabled=True, use_container_width=True)
+
     menu = get_master_menu()
     categories = sorted(list(menu.keys()))
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # ACCORDION LOGIC
+    # ACCORDION MENU LOGIC
     for cat in categories:
         with st.expander(f"{cat}", expanded=False):
             for item in menu[cat]:
@@ -399,15 +434,17 @@ def render_ordering_os():
     if not st.session_state.cart: 
         st.markdown("<h3 style='text-align:center; color:#666;'>Cart is Empty</h3>", unsafe_allow_html=True)
     else:
-        # INDIVIDUAL ITEM REMOVE LOGIC
+        # INDIVIDUAL ITEM REMOVE LOGIC WITH REFUND
         for i, item in enumerate(st.session_state.cart):
             col_info, col_btn = st.columns([6, 4], gap="small")
             with col_info:
                 st.markdown(f'<div class="receipt-row" style="margin-top:15px; flex-direction:column; align-items:flex-start;"><span>{item["name"]}</span><span style="color:{SystemConfig.PRIMARY_COLOR}; font-weight:800;">${item["price"]:.2f}</span></div>', unsafe_allow_html=True)
             with col_btn:
                 st.markdown("<div style='margin-top:10px;'></div>", unsafe_allow_html=True)
-                if st.button("❌ DROP", key=f"drop_{i}"):
-                    st.session_state.cart.pop(i)
+                if st.button("DROP", key=f"drop_{i}"):
+                    dropped_item = st.session_state.cart.pop(i)
+                    if dropped_item.get("is_reward"):
+                        modify_points(st.session_state.phone_number, dropped_item["cost"])
                     st.rerun()
             st.markdown("<hr style='border-top:1px solid #333; margin:5px 0;'>", unsafe_allow_html=True)
 
@@ -419,7 +456,7 @@ def render_ordering_os():
         st.markdown(f"""<div style="margin-top: 20px; color: #aaa; font-size: 1.5rem;"><div class="receipt-row"><span>Subtotal:</span><span>${subtotal:.2f}</span></div><div class="receipt-row"><span>Tax (8.5%):</span><span>${tax:.2f}</span></div></div><div class="manifest-total"><span>TOTAL</span><span>${total:.2f}</span></div>""", unsafe_allow_html=True)
 
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN 🍽️", "TO-GO 🛍️"], horizontal=True, label_visibility="collapsed")
+        st.session_state.order_type = st.radio("DESTINATION", ["DINE-IN", "TO-GO"], horizontal=True, label_visibility="collapsed")
         
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("""<style>div.stButton>button[key="btn_place_order"] { background-color: #6A0DAD !important; color: #FFFFFF !important; border: 3px solid #9D50BB !important; font-size: 24px !important; height: 100px !important; box-shadow: 0 0 30px rgba(106, 13, 173, 0.8) !important; margin-top: 15px; }</style>""", unsafe_allow_html=True)
@@ -431,13 +468,16 @@ def render_ordering_os():
     col1, col2 = st.columns(2, gap="medium")
     with col1:
         if st.button("Clear Cart", type="secondary"): 
-            st.session_state.cart = []; st.rerun()
+            refund_cart_points()
+            st.rerun()
     with col2:
         if st.button("Logout", key="btn_logout", type="secondary"): 
-            st.session_state.cart = []; st.session_state.view_mode = "login"; st.rerun()
+            refund_cart_points()
+            st.session_state.view_mode = "login"
+            st.rerun()
 
 # ==========================================
-# 6. KDS UI (FIXED: FIFO ORDER)
+# 6. KDS UI (FIFO ORDER)
 # ==========================================
 def render_kds():
     inject_kds_keyboard_hack()
@@ -458,7 +498,7 @@ def render_kds():
         if st.button("EXIT KDS", key="btn_exit_kds", type="secondary"): st.session_state.view_mode = "login"; st.rerun()
     with c2:
         is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
-        btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+        btn_text = "DESKTOP VIEW" if is_mobile else "MOBILE VIEW"
         if st.button(btn_text):
             st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
             st.rerun()
@@ -466,10 +506,8 @@ def render_kds():
     if not live_tickets: 
         st.markdown("<h2 style='text-align:center; color:#444; margin-top:50px; font-size:3rem;'>KITCHEN CLEAR.</h2>", unsafe_allow_html=True)
     else:
-        # FIFO BUMP: Bumps the OLDEST ticket in the queue (the first one)
         oldest_ticket = live_tickets[0]
         
-        # This button is explicitly marked type="primary" to be caught by the JS Spacebar Hack
         if st.button(f"BUMP OLDEST (#{oldest_ticket['order_id']}) [SPACE BAR]", key="btn_bump_oldest", type="primary", use_container_width=True): 
             bump_kitchen_ticket(oldest_ticket['order_id'])
             st.rerun()
@@ -478,7 +516,7 @@ def render_kds():
         col_dine, col_togo = st.columns(2)
         
         with col_dine:
-            st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 3px solid #2E7D32; padding-bottom: 10px; font-size:2.5rem;'>🍽️ DINE-IN EXPO</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color:#2E7D32; text-align:center; border-bottom: 3px solid #2E7D32; padding-bottom: 10px; font-size:2.5rem;'>DINE-IN EXPO</h3>", unsafe_allow_html=True)
             if not dine_in_tickets: 
                 st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px; font-size:2rem;'>DINE-IN CLEAR</h4>", unsafe_allow_html=True)
             else:
@@ -492,7 +530,7 @@ def render_kds():
                         st.rerun()
                         
         with col_togo:
-            st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 3px solid #D32F2F; padding-bottom: 10px; font-size:2.5rem;'>🛍️ TO-GO BAGGING</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='color:#D32F2F; text-align:center; border-bottom: 3px solid #D32F2F; padding-bottom: 10px; font-size:2.5rem;'>TO-GO BAGGING</h3>", unsafe_allow_html=True)
             if not to_go_tickets: 
                 st.markdown("<h4 style='text-align:center; color:#444; margin-top:30px; font-size:2rem;'>TO-GO CLEAR</h4>", unsafe_allow_html=True)
             else:
@@ -515,12 +553,12 @@ def render_admin_os():
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("⬅ EXIT SECURE SESSION", key="btn_exit_admin", type="secondary"): 
+        if st.button("EXIT SECURE SESSION", key="btn_exit_admin", type="secondary"): 
             st.session_state.view_mode = "login"
             st.rerun()
     with col2:
         is_mobile = st.session_state.get('layout_mode', 'Mobile') == 'Mobile'
-        btn_text = "🖥️ DESKTOP VIEW" if is_mobile else "📱 MOBILE VIEW"
+        btn_text = "DESKTOP VIEW" if is_mobile else "MOBILE VIEW"
         if st.button(btn_text):
             st.session_state.layout_mode = "Desktop" if is_mobile else "Mobile"
             st.rerun()
@@ -540,7 +578,7 @@ def render_admin_os():
     with m2: st.markdown(f"""<div style='background: #1a1a1a; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #333;'><div style='color:#888; font-size:1.5rem; font-weight:bold;'>TOTAL TICKETS</div><div style='font-size:3.5rem; font-weight:800; color:#FFF;'>{total_ords}</div></div>""", unsafe_allow_html=True)
     with m3: st.markdown(f"""<div style='background: #1a1a1a; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #333;'><div style='color:#888; font-size:1.5rem; font-weight:bold;'>AVERAGE ORDER</div><div style='font-size:3.5rem; font-weight:800; color:#FFF;'>${aov:.2f}</div></div>""", unsafe_allow_html=True)
 
-    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 50px; font-size:2.5rem;'>⚡ LIVE TRANSACTION LOG</h3><div style='background: #111; border: 2px solid #333; border-radius: 12px; padding: 25px; height: 500px; overflow-y: scroll;'>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color: {SystemConfig.PRIMARY_COLOR}; margin-top: 50px; font-size:2.5rem;'>LIVE TRANSACTION LOG</h3><div style='background: #111; border: 2px solid #333; border-radius: 12px; padding: 25px; height: 500px; overflow-y: scroll;'>", unsafe_allow_html=True)
     for order in reversed(sales_data):
         sc = "#7FFF00" if order.get("status") == "COMPLETED" else "#FFD700"
         st.markdown(f"""<div style="border-bottom: 2px solid #222; padding-bottom: 20px; margin-bottom: 20px;"><div style="color: {SystemConfig.PRIMARY_COLOR}; font-weight: 800; font-size: 2rem;">ORDER #{order['order_id']} <span style="float:right; color: {sc}; font-size: 1.5rem;">[{order.get('status', 'COMPLETED')}]</span></div><div style="color: #ccc; font-size: 1.8rem; margin-top: 10px; font-weight:600;">{order['type']} | {order.get('phone', 'N/A')} | {len(order['items'])} items | <strong style="color:#FFF;">${order['total']:.2f}</strong></div></div>""", unsafe_allow_html=True)
