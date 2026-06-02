@@ -1,11 +1,25 @@
-# -*- coding: utf-8 -*-
+v# -*- coding: utf-8 -*-
 import streamlit as st
 import streamlit.components.v1 as components
 import time
-import json
-import os
 import datetime
+import os
 from streamlit_autorefresh import st_autorefresh
+
+# --- FIREBASE INTEGRATION ---
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+
+# Initialize Firebase safely so it doesn't crash on Streamlit reloads
+if not firebase_admin._apps:
+    key_dict = dict(st.secrets["firebase"])
+    cred = credentials.Certificate(key_dict)
+    firebase_admin.initialize_app(cred)
+
+# Create the database client
+db = firestore.client()
+# ----------------------------
 
 # ==========================================
 # 1. DATABASE ENGINE & SYSTEM CONFIG
@@ -18,36 +32,39 @@ class SystemConfig:
     BG_COLOR = "#000000"       
     LOGO_PATH = "la_reina_dark.png" 
     TAX_RATE = 0.085           
-    DB_FILE = "la_reina_db.json"      
-    SALES_DB = "la_reina_sales.json"  
 
-def load_db():
-    if os.path.exists(SystemConfig.DB_FILE):
-        with open(SystemConfig.DB_FILE, 'r') as f: return json.load(f)
-    return {} 
-
-def save_db(db_data):
-    with open(SystemConfig.DB_FILE, 'w') as f: json.dump(db_data, f, indent=4)
+# --- REFACTORED FIRESTORE CLOUD FUNCTIONS ---
 
 def sync_user_data(phone_number):
-    db = load_db()
-    if phone_number not in db:
-        db[phone_number] = {"points": 0, "lifetime_orders": 0}
-        save_db(db)
-    st.session_state.reward_points = db[phone_number]["points"]
+    """Fetches user from Firebase, creates them if they don't exist."""
+    user_ref = db.collection("users").document(phone_number)
+    doc = user_ref.get()
+    
+    if doc.exists:
+        st.session_state.reward_points = doc.to_dict().get("points", 0)
+    else:
+        user_ref.set({"points": 0, "lifetime_orders": 0})
+        st.session_state.reward_points = 0
 
 def modify_points(phone_number, amount, is_checkout=False):
+    """Updates user points in Firebase."""
     if not phone_number or phone_number == "STAFF": return
-    db = load_db()
-    if phone_number in db:
-        db[phone_number]["points"] += amount
-        if is_checkout:
-            db[phone_number]["lifetime_orders"] += 1
-        save_db(db)
-        st.session_state.reward_points = db[phone_number]["points"]
+    
+    user_ref = db.collection("users").document(phone_number)
+    
+    # Use Firestore's Increment to handle simultaneous point updates safely
+    updates = {"points": firestore.Increment(amount)}
+    if is_checkout:
+        updates["lifetime_orders"] = firestore.Increment(1)
+        
+    user_ref.set(updates, merge=True)
+    
+    # Update local session state to match
+    current = user_ref.get().to_dict()
+    st.session_state.reward_points = current.get("points", 0)
 
 def log_transaction(order_num, order_type, cart_items, total_price, phone_number):
-    sales = get_sales_data()
+    """Pushes a new ticket to the Firebase 'sales' collection."""
     new_order = {
         "order_id": order_num, 
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %I:%M %p"),
@@ -57,21 +74,21 @@ def log_transaction(order_num, order_type, cart_items, total_price, phone_number
         "total": total_price, 
         "status": "PENDING"
     }
-    sales.append(new_order)
-    with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
+    
+    # Use the order_num as the actual document ID for easy lookup
+    db.collection("sales").document(order_num).set(new_order)
 
 def get_sales_data():
-    if os.path.exists(SystemConfig.SALES_DB):
-        with open(SystemConfig.SALES_DB, 'r') as f: return json.load(f)
-    return []
+    """Pulls all sales from Firebase. Returns a list of dictionaries."""
+    docs = db.collection("sales").stream()
+    sales = [doc.to_dict() for doc in docs]
+    # Sort by order_id to keep them chronological
+    return sorted(sales, key=lambda x: x.get("order_id", ""))
 
 def bump_kitchen_ticket(order_id):
-    sales = get_sales_data()
-    for order in sales:
-        if order["order_id"] == order_id:
-            order["status"] = "COMPLETED"
-            break
-    with open(SystemConfig.SALES_DB, 'w') as f: json.dump(sales, f, indent=4)
+    """Updates a specific ticket's status to COMPLETED in Firebase."""
+    doc_ref = db.collection("sales").document(order_id)
+    doc_ref.update({"status": "COMPLETED"})
 
 # ==========================================
 # 2. SYSTEM CONFIG & STYLES (Elder-Friendly UI)
