@@ -13,7 +13,13 @@ from firebase_admin import firestore
 
 # Initialize Firebase safely so it doesn't crash on Streamlit reloads
 if not firebase_admin._apps:
+    # Pull the master key from your Streamlit Secrets vault
     key_dict = dict(st.secrets["firebase"])
+    
+    # [CRITICAL FIX]: Force Streamlit to translate "\n" into actual line breaks for the private key
+    key_dict["private_key"] = key_dict["private_key"].replace("\\n", "\n")
+    
+    # Authenticate and initialize
     cred = credentials.Certificate(key_dict)
     firebase_admin.initialize_app(cred)
 
